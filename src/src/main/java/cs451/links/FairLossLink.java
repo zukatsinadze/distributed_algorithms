@@ -6,7 +6,6 @@ import cs451.Message;
 import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
-
 public class FairLossLink implements Observer {
     private final UDPReceiver receiver;
     private final Observer observer;
@@ -25,11 +24,11 @@ public class FairLossLink implements Observer {
         senderThread.start();
     }
 
-    void start(){
+    void start() {
         receiverThread.start();
     }
 
-    void stop(){
+    void stop() {
         receiver.stopReceiver();
     }
 

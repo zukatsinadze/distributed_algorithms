@@ -14,13 +14,12 @@ public class Main {
     static Process process;
     static Parser parser;
 
-
     private static void handleSignal() {
-        //immediately stop network packet processing
+        // immediately stop network packet processing
         System.out.println("Immediately stopping network packet processing.");
         process.stopProcessing();
 
-        //write/flush output file if necessary
+        // write/flush output file if necessary
         System.out.println("Writing output.");
         dumpLogs();
         checkNumberOfLogsIsCorrect();
@@ -47,9 +46,9 @@ public class Main {
     }
 
     private static void sendMessages() {
-        if(process.getId() != targetId){
-            for(int i = 0; i < numberOfMessages; i++){
-                process.send(new Message(i, process.getId(), targetId, process.getId(), ("Message: " + i)));
+        if (process.getId() != targetId) {
+            for (int i = 0; i < numberOfMessages; i++) {
+                process.send(new Message(i, process.getId(), targetId, ("Message: " + i)));
             }
         }
     }
@@ -97,12 +96,13 @@ public class Main {
         // example
         long pid = ProcessHandle.current().pid();
         System.out.println("My PID: " + pid + "\n");
-        System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
+        System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid
+                + "` to stop processing packets\n");
 
         System.out.println("My ID: " + parser.myId() + "\n");
         System.out.println("List of resolved hosts is:");
         System.out.println("==========================");
-        for (Host host: parser.hosts()) {
+        for (Host host : parser.hosts()) {
             System.out.println(host.getId());
             System.out.println("Human-readable IP: " + host.getIp());
             System.out.println("Human-readable Port: " + host.getPort());
@@ -128,7 +128,6 @@ public class Main {
 
         System.out.println("Broadcasting and delivering messages...\n");
         sendMessages();
-
 
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.

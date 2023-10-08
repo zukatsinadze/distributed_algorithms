@@ -22,9 +22,9 @@ public class HostsParser {
         }
 
         this.filename = filename;
-        try(BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
             int lineNum = 1;
-            for(String line; (line = br.readLine()) != null; lineNum++) {
+            for (String line; (line = br.readLine()) != null; lineNum++) {
                 if (line.isBlank()) {
                     continue;
                 }

@@ -2,8 +2,6 @@ package cs451;
 
 import cs451.links.PerfectLink;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -13,15 +11,13 @@ public class Process implements Observer {
     private PerfectLink pl;
     private final ConcurrentLinkedQueue<String> logs = new ConcurrentLinkedQueue<>();
 
-
     public Process(int id, HashMap<Integer, Host> hostMap) {
-
         this.me = hostMap.get(id);
         this.hostMap = hostMap;
         this.pl = new PerfectLink(this.me.getPort(), this);
     }
 
-    public void send(Message message){
+    public void send(Message message) {
         Host host = hostMap.get(message.getReceiverId());
         if (host == null) {
             System.out.println("Host " + message.getReceiverId() + " not found");
@@ -29,7 +25,7 @@ public class Process implements Observer {
         }
 
         pl.send(message, host);
-        logs.add("b " + message.getMessageId() + "\n");
+        logs.add("b " + message.getMessageId() + '\n');
     }
 
     public int getId() {
@@ -40,11 +36,11 @@ public class Process implements Observer {
         return pl;
     }
 
-    public void stopProcessing(){
+    public void stopProcessing() {
         pl.stop();
     }
 
-    public void startProcessing(){
+    public void startProcessing() {
         pl.start();
     }
 
@@ -54,7 +50,7 @@ public class Process implements Observer {
 
     @Override
     public void deliver(Message message) {
-        logs.add("d " + message.getSenderId() + " " + message.getMessageId() + "\n");
+        logs.add("d " + message.getSenderId() + " " + message.getMessageId() + '\n');
     }
 
 }

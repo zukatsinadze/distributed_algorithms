@@ -1,6 +1,5 @@
 package cs451.links.udp;
 
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
