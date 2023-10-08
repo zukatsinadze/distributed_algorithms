@@ -12,7 +12,7 @@ RUN dpkg-reconfigure --frontend=noninteractive tzdata
 
 RUN apt-get -y install file unzip zip xz-utils git \
                          gcc g++ cmake default-jdk \
-                         python3
+                         python3 tmux
 
 ADD docker/apache-maven-3.6.3-bin.tar.gz /usr/local
 RUN ln -s /usr/local/apache-maven-3.6.3/bin/mvn /usr/local/bin
