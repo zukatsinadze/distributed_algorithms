@@ -6,12 +6,15 @@ import cs451.Message;
 
 import java.util.HashSet;
 import java.util.Set;
+// import java.util.concurrent.atomic.AtomicInteger;
 
 public class PerfectLink implements Observer {
     private final StubbornLink stubbornLink;
     private final Observer observer;
 
     private Set<Message> deliveredMessages;
+    // private static AtomicInteger counter = new AtomicInteger(0);
+    // private static AtomicInteger counter2 = new AtomicInteger(0);
 
     public PerfectLink(int port, Observer observer) {
         this.stubbornLink = new StubbornLink(port, this);
@@ -34,10 +37,11 @@ public class PerfectLink implements Observer {
     @Override
     public void deliver(Message message) {
         if (!hasDelivered(message)) {
+            // System.out.println("Delivery count: " + counter.incrementAndGet());
             deliveredMessages.add(message);
             observer.deliver(message);
         } else {
-            System.out.println("Duplicate message: " + message.getMessageId());
+            // System.out.println("Duplicate count: " + counter2.incrementAndGet());
         }
     }
 

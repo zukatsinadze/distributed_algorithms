@@ -23,3 +23,5 @@ buildNumber.properties
 .vscode
 .tmux.conf
 *.output
+.m2
+.hawtjni

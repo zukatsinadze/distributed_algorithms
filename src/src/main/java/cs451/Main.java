@@ -1,9 +1,9 @@
 package cs451;
 
-import java.io.IOException;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -14,13 +14,12 @@ public class Main {
     static Process process;
     static Parser parser;
 
-
     private static void handleSignal() {
-        //immediately stop network packet processing
+        // immediately stop network packet processing
         System.out.println("Immediately stopping network packet processing.");
         process.stopProcessing();
 
-        //write/flush output file if necessary
+        // write/flush output file if necessary
         System.out.println("Writing output.");
         dumpLogs();
         checkNumberOfLogsIsCorrect();
@@ -47,9 +46,10 @@ public class Main {
     }
 
     private static void sendMessages() {
-        if(process.getId() != targetId){
-            for(int i = 0; i < numberOfMessages; i++){
-                process.send(new Message(i, process.getId(), targetId, process.getId(), ("Message: " + i)));
+        if (process.getId() != targetId) {
+            for (int i = 1; i < numberOfMessages + 1; i++) {
+                process.send(
+                        new Message(i, process.getId(), targetId, ("Message: " + i)));
             }
         }
     }
@@ -71,21 +71,26 @@ public class Main {
         if (targetId == parser.myId()) {
             // I am receiver
             if (process.getLogs().size() != numberOfMessages * (parser.hosts().size() - 1)) {
-                System.out.println("Number of logs is not correct for the receiver " + parser.myId());
-                System.out.println("Expected: " + numberOfMessages * (parser.hosts().size() - 1));
+                System.out.println("Number of logs is not correct for the receiver " +
+                        parser.myId());
+                System.out.println("Expected: " +
+                        numberOfMessages * (parser.hosts().size() - 1));
                 System.out.println("Actual: " + process.getLogs().size());
                 return;
             }
         } else {
             // I am sender
             if (process.getLogs().size() != numberOfMessages) {
-                System.out.println("Number of logs is not correct for the sender " + parser.myId());
+                // This seems to be mostly correct during stresstest
+                System.out.println("Number of logs is not correct for the sender " +
+                        parser.myId());
                 System.out.println("Expected: " + numberOfMessages);
                 System.out.println("Actual: " + process.getLogs().size());
                 return;
             }
         }
-        System.out.println("Number of logs is correct for the process " + parser.myId());
+        System.out.println("Number of logs is correct for the process " +
+                parser.myId());
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -97,12 +102,14 @@ public class Main {
         // example
         long pid = ProcessHandle.current().pid();
         System.out.println("My PID: " + pid + "\n");
-        System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
+        System.out.println("From a new terminal type `kill -SIGINT " + pid +
+                "` or `kill -SIGTERM " + pid +
+                "` to stop processing packets\n");
 
         System.out.println("My ID: " + parser.myId() + "\n");
         System.out.println("List of resolved hosts is:");
         System.out.println("==========================");
-        for (Host host: parser.hosts()) {
+        for (Host host : parser.hosts()) {
             System.out.println(host.getId());
             System.out.println("Human-readable IP: " + host.getIp());
             System.out.println("Human-readable Port: " + host.getPort());
@@ -128,7 +135,6 @@ public class Main {
 
         System.out.println("Broadcasting and delivering messages...\n");
         sendMessages();
-
 
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.
