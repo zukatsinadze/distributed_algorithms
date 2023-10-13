@@ -14,14 +14,14 @@ public class PerfectLink implements Observer {
     private final StubbornLink stubbornLink;
     private final Observer observer;
 
-    private ArrayList<Message> deliveredMessages;
+    private HashSet<Message> deliveredMessages;
     // private static AtomicInteger counter = new AtomicInteger(0);
     // private static AtomicInteger counter2 = new AtomicInteger(0);
 
     public PerfectLink(int port, Observer observer) {
         this.stubbornLink = new StubbornLink(port, this);
         this.observer = observer;
-        this.deliveredMessages = new ArrayList<>();
+        this.deliveredMessages = new HashSet<>();
     }
 
     public void send(Message message, Host host) {
