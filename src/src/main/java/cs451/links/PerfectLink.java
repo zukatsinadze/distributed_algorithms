@@ -4,7 +4,9 @@ import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 // import java.util.concurrent.atomic.AtomicInteger;
 
@@ -12,14 +14,14 @@ public class PerfectLink implements Observer {
     private final StubbornLink stubbornLink;
     private final Observer observer;
 
-    private Set<Message> deliveredMessages;
+    private ArrayList<Message> deliveredMessages;
     // private static AtomicInteger counter = new AtomicInteger(0);
     // private static AtomicInteger counter2 = new AtomicInteger(0);
 
     public PerfectLink(int port, Observer observer) {
         this.stubbornLink = new StubbornLink(port, this);
         this.observer = observer;
-        this.deliveredMessages = new HashSet<>();
+        this.deliveredMessages = new ArrayList<>();
     }
 
     public void send(Message message, Host host) {

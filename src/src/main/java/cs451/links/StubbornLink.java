@@ -20,11 +20,11 @@ public class StubbornLink implements Observer {
 
     public void send(Message message, Host host) {
         // TODO: maybe add retry logic here
-        // int retry = 0;
-        // for (; retry < 3; retry++) {
+        int retry = 0;
+        for (; retry < 5; retry++) {
+            fl.send(message, host);
+        }
         // fl.send(message, host);
-        // }
-        fl.send(message, host);
     }
 
     public void stop() {
