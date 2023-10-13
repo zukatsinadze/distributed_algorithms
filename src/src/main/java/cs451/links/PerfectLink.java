@@ -4,10 +4,9 @@ import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
 
-import java.util.ArrayList;
+import java.net.DatagramSocket;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+
 // import java.util.concurrent.atomic.AtomicInteger;
 
 public class PerfectLink implements Observer {
@@ -18,8 +17,8 @@ public class PerfectLink implements Observer {
     // private static AtomicInteger counter = new AtomicInteger(0);
     // private static AtomicInteger counter2 = new AtomicInteger(0);
 
-    public PerfectLink(int port, Observer observer) {
-        this.stubbornLink = new StubbornLink(port, this);
+    public PerfectLink(int port, Observer observer, DatagramSocket socket) {
+        this.stubbornLink = new StubbornLink(this, socket);
         this.observer = observer;
         this.deliveredMessages = new HashSet<>();
     }
@@ -32,14 +31,14 @@ public class PerfectLink implements Observer {
         stubbornLink.start();
     }
 
-    public void stop() {
-        stubbornLink.stop();
+    public static void stop() {
+        StubbornLink.stop();
     }
 
     @Override
-    public void deliver(Message message) {
+    public synchronized void deliver(Message message) {
+        // System.out.println("Delivered count: " + this + " " + deliveredMessages.size());
         if (!hasDelivered(message)) {
-            // System.out.println("Delivery count: " + counter.incrementAndGet());
             deliveredMessages.add(message);
             observer.deliver(message);
         } else {

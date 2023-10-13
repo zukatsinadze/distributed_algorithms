@@ -1,6 +1,9 @@
 package cs451.links;
 
 import cs451.Observer;
+
+import java.net.DatagramSocket;
+
 import cs451.Host;
 import cs451.Message;
 // import cs451.Constants;
@@ -9,8 +12,8 @@ public class StubbornLink implements Observer {
     private final FairLossLink fl;
     private final Observer observer;
 
-    public StubbornLink(int port, Observer observer) {
-        this.fl = new FairLossLink(port, this);
+    public StubbornLink(Observer observer, DatagramSocket socket) {
+        this.fl = new FairLossLink(this, socket);
         this.observer = observer;
     }
 
@@ -27,8 +30,8 @@ public class StubbornLink implements Observer {
         // fl.send(message, host);
     }
 
-    public void stop() {
-        fl.stop();
+    public static void stop() {
+        FairLossLink.stop();
     }
 
     @Override

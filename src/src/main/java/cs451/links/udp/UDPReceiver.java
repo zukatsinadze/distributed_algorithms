@@ -8,19 +8,18 @@ import cs451.Message;
 import cs451.Observer;
 
 public class UDPReceiver implements Runnable {
-    private int port;
     private final Observer observer;
-    private volatile boolean isRunning;
+    private static boolean isRunning;
+    private DatagramSocket socket;
 
-    public UDPReceiver(int port, Observer observer) {
-        this.port = port;
+    public UDPReceiver(Observer observer, DatagramSocket socket) {
         this.observer = observer;
+        this.socket = socket;
     }
 
     @Override
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket(port);
             byte[] receiveData = new byte[1024];
             isRunning = true;
             System.out.println(InetAddress.getLocalHost());
@@ -31,15 +30,12 @@ public class UDPReceiver implements Runnable {
                 observer.deliver(message);
             }
 
-            // Close the socket when done
-            socket.close();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void stopReceiver() {
+    public static void stopReceiver() {
         isRunning = false;
     }
 }

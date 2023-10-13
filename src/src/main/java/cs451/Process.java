@@ -2,6 +2,8 @@ package cs451;
 
 import cs451.links.PerfectLink;
 
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -10,11 +12,18 @@ public class Process implements Observer {
     private HashMap<Integer, Host> hostMap;
     private PerfectLink pl;
     private final ConcurrentLinkedQueue<String> logs = new ConcurrentLinkedQueue<>();
+    private DatagramSocket socket;
 
     public Process(int id, HashMap<Integer, Host> hostMap) {
         this.me = hostMap.get(id);
         this.hostMap = hostMap;
-        this.pl = new PerfectLink(this.me.getPort(), this);
+
+        try {
+            this.socket = new DatagramSocket(this.me.getPort());
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        this.pl = new PerfectLink(this.me.getPort(), this, this.socket);
     }
 
     public void send(Message message) {
@@ -23,7 +32,6 @@ public class Process implements Observer {
             System.out.println("Host " + message.getReceiverId() + " not found");
             return;
         }
-
         pl.send(message, host);
         logs.add("b " + message.getMessageId() + '\n');
     }
@@ -32,12 +40,9 @@ public class Process implements Observer {
         return me.getId();
     }
 
-    public PerfectLink getLinks() {
-        return pl;
-    }
-
     public void stopProcessing() {
-        pl.stop();
+        PerfectLink.stop();
+        // this.socket.close();
     }
 
     public void startProcessing() {
