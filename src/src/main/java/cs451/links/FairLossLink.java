@@ -4,23 +4,27 @@ import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
 import java.net.DatagramSocket;
+import java.util.HashMap;
+
 import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
 public class FairLossLink implements Observer {
     private final Observer observer;
     private DatagramSocket socket;
-
+    private HashMap<Integer, Host> hostMap;
     private Thread receiverThread;
     private Thread senderThread;
 
-    FairLossLink(Observer observer, DatagramSocket socket) {
+    FairLossLink(Observer observer, DatagramSocket socket, HashMap<Integer, Host> hostMap) {
         this.observer = observer;
         this.socket = socket;
+        this.hostMap = hostMap;
         receiverThread = new Thread(new UDPReceiver(this, socket));
     }
 
-    void send(Message message, Host host) {
+    void send(Message message) {
+        Host host = hostMap.get(message.getReceiverId());
         senderThread = new Thread(new UDPSender(host.getIp(), host.getPort(), message, this.socket));
         senderThread.start();
     }
@@ -31,7 +35,6 @@ public class FairLossLink implements Observer {
 
     public static void stop() {
         UDPReceiver.stopReceiver();
-        // receiver.stopReceiver();
     }
 
     @Override

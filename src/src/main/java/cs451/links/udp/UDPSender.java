@@ -23,7 +23,6 @@ public class UDPSender implements Runnable {
     public void run() {
         try {
             byte[] sendData = messageToSend.getBytes();
-
             InetAddress serverInetAddress = InetAddress.getByName(serverAddress);
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverInetAddress, serverPort);
 

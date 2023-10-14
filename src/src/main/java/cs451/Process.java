@@ -23,16 +23,16 @@ public class Process implements Observer {
         } catch (SocketException e) {
             e.printStackTrace();
         }
-        this.pl = new PerfectLink(this.me.getPort(), this, this.socket);
+        this.pl = new PerfectLink(this.me.getPort(), this, this.socket, hostMap);
     }
 
     public void send(Message message) {
-        Host host = hostMap.get(message.getReceiverId());
-        if (host == null) {
-            System.out.println("Host " + message.getReceiverId() + " not found");
-            return;
-        }
-        pl.send(message, host);
+        // Host host = hostMap.get(message.getReceiverId());
+        // if (host == null) {
+        //     System.out.println("Host " + message.getReceiverId() + " not found");
+        //     return;
+        // }
+        pl.send(message);
         logs.add("b " + message.getMessageId() + '\n');
     }
 
