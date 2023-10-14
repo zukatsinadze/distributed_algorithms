@@ -48,8 +48,7 @@ public class Main {
     private static void sendMessages() {
         if (process.getId() != targetId) {
             for (int i = 1; i < numberOfMessages + 1; i++) {
-                process.send(
-                        new Message(i, process.getId(), targetId, ("Message: " + i)));
+                process.send(new Message(i, process.getId(), targetId));
             }
         }
     }

@@ -7,21 +7,18 @@ public class Message implements Serializable {
     private final int messageId;
     private final int senderId;
     private final int receiverId;
-    private final String messageContent;
     private int ack = 0;
 
-    public Message(int messageId, int senderId, int receiverId, String messageContent) {
+    public Message(int messageId, int senderId, int receiverId) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
-        this.messageContent = messageContent;
     }
 
-    public Message(int messageId, int senderId, int receiverId, String messageContent, int ack) {
+    public Message(int messageId, int senderId, int receiverId, int ack) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
-        this.messageContent = messageContent;
         this.ack = ack;
     }
 
@@ -30,7 +27,6 @@ public class Message implements Serializable {
         this.messageId = m.messageId;
         this.senderId = m.receiverId;
         this.receiverId = m.senderId;
-        this.messageContent = "ack";
         this.ack = 1;
     }
 
@@ -44,10 +40,6 @@ public class Message implements Serializable {
 
     public int getReceiverId() {
         return receiverId;
-    }
-
-    public String getMessageContent() {
-        return messageContent;
     }
 
     public void ack() {
@@ -80,13 +72,12 @@ public class Message implements Serializable {
     }
 
     public byte[] getBytes() {
-        return (messageId + " " + senderId + " " + receiverId + " " + ack + " " + messageContent).getBytes();
+        return (messageId + " " + senderId + " " + receiverId + " " + ack + " " + "d").getBytes();
     }
 
     public static Message fromBytes(byte[] bytes) {
         String[] splits = new String(bytes).split(" ");
-        return new Message(Integer.parseInt(splits[0]), Integer.parseInt(splits[1]), Integer.parseInt(splits[2]),
-                splits[4], Integer.parseInt(splits[3]));
+        return new Message(Integer.parseInt(splits[0]), Integer.parseInt(splits[1]), Integer.parseInt(splits[2]), Integer.parseInt(splits[3]));
     }
 
 }

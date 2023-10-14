@@ -13,12 +13,12 @@ public class PerfectLink implements Observer {
     private final StubbornLink stubbornLink;
     private final Observer observer;
 
-    private HashSet<Message> deliveredMessages;
+    private HashMap<Integer, Message> deliveredMessages;
 
     public PerfectLink(int port, Observer observer, DatagramSocket socket, HashMap<Integer, Host> hostMap) {
         this.stubbornLink = new StubbornLink(this, socket, hostMap);
         this.observer = observer;
-        this.deliveredMessages = new HashSet<>();
+        this.deliveredMessages = new HashMap<>();
     }
 
     public void send(Message message) {
@@ -35,13 +35,10 @@ public class PerfectLink implements Observer {
 
     @Override
     public void deliver(Message message) {
-        if (!hasDelivered(message)) {
-            deliveredMessages.add(message);
+        int key = message.uniqueId();
+        if (!deliveredMessages.containsKey(key)) {
+            deliveredMessages.put(key, message);
             observer.deliver(message);
         }
-    }
-
-    private boolean hasDelivered(Message message) {
-        return deliveredMessages.contains(message);
     }
 }

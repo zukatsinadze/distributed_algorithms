@@ -27,7 +27,6 @@ public class UDPReceiver implements Runnable {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 socket.receive(receivePacket);
                 Message message = Message.fromBytes(receivePacket.getData());
-
                 observer.deliver(message);
             }
 
