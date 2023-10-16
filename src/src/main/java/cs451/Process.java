@@ -9,14 +9,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Process implements Observer {
     private Host me;
-    private HashMap<Integer, Host> hostMap;
     private PerfectLink pl;
     private final ConcurrentLinkedQueue<String> logs = new ConcurrentLinkedQueue<>();
     private DatagramSocket socket;
 
-    public Process(int id, HashMap<Integer, Host> hostMap) {
+    public Process(byte id, HashMap<Byte, Host> hostMap) {
         this.me = hostMap.get(id);
-        this.hostMap = hostMap;
 
         try {
             this.socket = new DatagramSocket(this.me.getPort());
@@ -36,7 +34,7 @@ public class Process implements Observer {
         logs.add("b " + message.getMessageId() + '\n');
     }
 
-    public int getId() {
+    public byte getId() {
         return me.getId();
     }
 

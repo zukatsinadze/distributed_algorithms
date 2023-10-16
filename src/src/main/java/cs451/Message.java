@@ -5,49 +5,44 @@ import java.util.Objects;
 
 public class Message implements Serializable {
     private final int messageId;
-    private final int senderId;
-    private final int receiverId;
-    private int ack = 0;
+    private byte senderId;
+    private byte receiverId;
+    private boolean ack = false;
 
-    public Message(int messageId, int senderId, int receiverId) {
+    public Message(int messageId, byte senderId, byte receiverId) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
     }
 
-    public Message(int messageId, int senderId, int receiverId, int ack) {
+    public Message(int messageId, byte senderId, byte receiverId, boolean ack) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.ack = ack;
     }
 
-    public Message(Message m) {
-        // Use only for acks
-        this.messageId = m.messageId;
-        this.senderId = m.receiverId;
-        this.receiverId = m.senderId;
-        this.ack = 1;
-    }
-
     public int getMessageId() {
         return messageId;
     }
 
-    public int getSenderId() {
+    public byte getSenderId() {
         return senderId;
     }
 
-    public int getReceiverId() {
+    public byte getReceiverId() {
         return receiverId;
     }
 
     public void ack() {
-        this.ack = 1;
+        byte temp = senderId;
+        senderId = receiverId;
+        receiverId = temp;
+        this.ack = true;
     }
 
     public boolean isAck() {
-        return ack == 1;
+        return ack;
     }
 
     @Override
@@ -61,7 +56,7 @@ public class Message implements Serializable {
     }
 
     public int uniqueId() {
-        if (ack == 1)
+        if (ack)
             return Objects.hash(messageId, receiverId, senderId);
         return Objects.hash(messageId, senderId, receiverId);
     }
@@ -77,7 +72,7 @@ public class Message implements Serializable {
 
     public static Message fromBytes(byte[] bytes) {
         String[] splits = new String(bytes).split(" ");
-        return new Message(Integer.parseInt(splits[0]), Integer.parseInt(splits[1]), Integer.parseInt(splits[2]), Integer.parseInt(splits[3]));
+        return new Message(Integer.parseInt(splits[0]), Byte.parseByte(splits[1]), Byte.parseByte(splits[2]), Boolean.parseBoolean(splits[3]));
     }
 
 }

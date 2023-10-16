@@ -12,11 +12,11 @@ import cs451.links.udp.UDPSender;
 public class FairLossLink implements Observer {
     private final Observer observer;
     private DatagramSocket socket;
-    private HashMap<Integer, Host> hostMap;
+    private HashMap<Byte, Host> hostMap;
     private Thread receiverThread;
     private Thread senderThread;
 
-    FairLossLink(Observer observer, DatagramSocket socket, HashMap<Integer, Host> hostMap) {
+    FairLossLink(Observer observer, DatagramSocket socket, HashMap<Byte, Host> hostMap) {
         this.observer = observer;
         this.socket = socket;
         this.hostMap = hostMap;

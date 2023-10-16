@@ -5,7 +5,6 @@ import cs451.Observer;
 import java.net.DatagramSocket;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +18,7 @@ public class StubbornLink implements Observer {
     private final Observer observer;
     private ConcurrentHashMap<Integer, Message> messagePool = new ConcurrentHashMap<>();
 
-    public StubbornLink(Observer observer, DatagramSocket socket, HashMap<Integer, Host> hostMap) {
+    public StubbornLink(Observer observer, DatagramSocket socket, HashMap<Byte, Host> hostMap) {
         this.fl = new FairLossLink(this, socket, hostMap);
         this.observer = observer;
     }
@@ -60,6 +59,7 @@ public class StubbornLink implements Observer {
             return;
         }
         observer.deliver(message);
-        send(new Message(message));
+        message.ack();
+        send(message);
     }
 }

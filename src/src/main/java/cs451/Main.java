@@ -8,9 +8,9 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Main {
-    static HashMap<Integer, Host> hostMap = new HashMap<>();
+    static HashMap<Byte, Host> hostMap = new HashMap<>();
     static int numberOfMessages;
-    static int targetId;
+    static byte targetId;
     static Process process;
     static Parser parser;
 
@@ -38,7 +38,7 @@ public class Main {
         try (BufferedReader br = new BufferedReader(new FileReader(parser.config()))) {
             String[] parts = br.readLine().split(" ");
             numberOfMessages = Integer.parseInt(parts[0]);
-            targetId = Integer.parseInt(parts[1]);
+            targetId = Byte.parseByte(parts[1]);
 
         } catch (IOException e) {
             System.err.println("Error reading the file: " + e.getMessage());
