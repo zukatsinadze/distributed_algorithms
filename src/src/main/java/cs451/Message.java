@@ -67,12 +67,27 @@ public class Message implements Serializable {
     }
 
     public byte[] getBytes() {
-        return (messageId + " " + senderId + " " + receiverId + " " + ack + " " + "d").getBytes();
+        byte[] result = new byte[7];
+
+        result[0] = (byte)(messageId >> 24);
+        result[1] = (byte)(messageId >> 16);
+        result[2] = (byte)(messageId >> 8);
+        result[3] = (byte)messageId;
+
+        result[4] = senderId;
+        result[5] = receiverId;
+
+        result[6] = (ack) ? (byte)1 : (byte)0;
+
+        return result;
     }
 
     public static Message fromBytes(byte[] bytes) {
-        String[] splits = new String(bytes).split(" ");
-        return new Message(Integer.parseInt(splits[0]), Byte.parseByte(splits[1]), Byte.parseByte(splits[2]), Boolean.parseBoolean(splits[3]));
+        int intValue = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
+        byte byteValue1 = bytes[4];
+        byte byteValue2 = bytes[5];
+        boolean boolValue = bytes[6] != 0;
+        return new Message(intValue, byteValue1, byteValue2, boolValue);
     }
 
 }
