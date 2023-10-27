@@ -1,6 +1,7 @@
 package cs451;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public class Message implements Serializable {
@@ -8,18 +9,21 @@ public class Message implements Serializable {
     private byte senderId;
     private byte receiverId;
     private boolean ack = false;
+    private String messageContent; // New variable
 
-    public Message(int messageId, byte senderId, byte receiverId) {
+    public Message(int messageId, byte senderId, byte receiverId, String messageContent) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
+        this.messageContent = messageContent;
     }
 
-    public Message(int messageId, byte senderId, byte receiverId, boolean ack) {
+    public Message(int messageId, byte senderId, byte receiverId, boolean ack, String messageContent) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.ack = ack;
+        this.messageContent = messageContent;
     }
 
     public int getMessageId() {
@@ -32,6 +36,10 @@ public class Message implements Serializable {
 
     public byte getReceiverId() {
         return receiverId;
+    }
+
+    public String getMessageContent() {
+        return messageContent;
     }
 
     public void ack() {
@@ -67,7 +75,8 @@ public class Message implements Serializable {
     }
 
     public byte[] getBytes() {
-        byte[] result = new byte[7];
+        byte[] contentBytes = messageContent.getBytes(StandardCharsets.UTF_8);
+        byte[] result = new byte[7 + contentBytes.length];
 
         result[0] = (byte)(messageId >> 24);
         result[1] = (byte)(messageId >> 16);
@@ -79,6 +88,8 @@ public class Message implements Serializable {
 
         result[6] = (ack) ? (byte)1 : (byte)0;
 
+        System.arraycopy(contentBytes, 0, result, 7, contentBytes.length);
+
         return result;
     }
 
@@ -87,7 +98,7 @@ public class Message implements Serializable {
         byte byteValue1 = bytes[4];
         byte byteValue2 = bytes[5];
         boolean boolValue = bytes[6] != 0;
-        return new Message(intValue, byteValue1, byteValue2, boolValue);
+        String content = new String(bytes, 7, bytes.length - 7, StandardCharsets.UTF_8);
+        return new Message(intValue, byteValue1, byteValue2, boolValue, content);
     }
-
 }

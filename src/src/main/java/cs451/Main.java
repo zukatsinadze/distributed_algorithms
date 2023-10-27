@@ -48,22 +48,23 @@ public class Main {
     private static void sendMessages() {
         if (process.getId() != targetId) {
             for (int i = 1; i < numberOfMessages + 1; i++) {
-                process.send(new Message(i, process.getId(), targetId));
+                process.send(new Message(i, process.getId(), targetId, ""));
             }
         }
     }
 
     private static void dumpLogs() {
-        ConcurrentLinkedQueue<String> logs = process.getLogs();
-        try {
-            FileOutputStream outputStream = new FileOutputStream(parser.output());
-            for (String log : logs) {
-                outputStream.write(log.getBytes());
-            }
-            outputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        process.dumpLogs();
+        // ConcurrentLinkedQueue<String> logs = process.getLogs();
+        // try {
+        //     FileOutputStream outputStream = new FileOutputStream(parser.output(), true);
+        //     for (String log : logs) {
+        //         outputStream.write(log.getBytes());
+        //     }
+        //     outputStream.close();
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
     }
 
     private static void checkNumberOfLogsIsCorrect() {
@@ -129,7 +130,7 @@ public class Main {
 
         parseConfig();
 
-        process = new Process(parser.myId(), hostMap);
+        process = new Process(parser.myId(), hostMap, parser.output());
         process.startProcessing();
 
         System.out.println("Broadcasting and delivering messages...\n");

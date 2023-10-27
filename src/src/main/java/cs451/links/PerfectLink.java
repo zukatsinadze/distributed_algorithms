@@ -4,7 +4,6 @@ import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
 
-import java.net.DatagramSocket;
 import java.util.HashMap;
 import java.util.HashSet;
 

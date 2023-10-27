@@ -25,7 +25,7 @@ public class UDPReceiver implements Runnable {
         try {
             byte[] receiveData = new byte[1024];
             isRunning = true;
-            System.out.println(InetAddress.getLocalHost());
+            // System.out.println(InetAddress.getLocalHost());
             while (isRunning) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 socket.receive(receivePacket);

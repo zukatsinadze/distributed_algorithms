@@ -2,7 +2,6 @@ package cs451.links;
 
 import cs451.Observer;
 
-import java.net.DatagramSocket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -36,7 +35,7 @@ public class StubbornLink implements Observer {
                     fl.send(entry.getValue());
                 }
             }
-        }, 100, 200);
+        }, 1000, 2000);
     }
 
     public void send(Message message) {
@@ -55,7 +54,7 @@ public class StubbornLink implements Observer {
     public void deliver(Message message) {
         if (message.isAck()) {
             messagePool.remove(message.uniqueId());
-            System.out.println("Recieved ack, removing from pool, pool size: " + messagePool.size());
+            // System.out.println("Recieved ack, removing from pool, pool size: " + messagePool.size());
             return;
         }
         observer.deliver(message);
