@@ -18,8 +18,8 @@ public class StubbornLink implements Observer {
     private final Observer observer;
     private ConcurrentHashMap<Integer, Message> messagePool = new ConcurrentHashMap<>();
 
-    public StubbornLink(Observer observer, DatagramSocket socket, HashMap<Byte, Host> hostMap) {
-        this.fl = new FairLossLink(this, socket, hostMap);
+    public StubbornLink(Observer observer, int port, HashMap<Byte, Host> hostMap) {
+        this.fl = new FairLossLink(this, port, hostMap);
         this.observer = observer;
     }
 

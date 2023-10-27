@@ -3,7 +3,6 @@ package cs451.links.udp;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-
 import cs451.Message;
 import cs451.Observer;
 
@@ -12,9 +11,13 @@ public class UDPReceiver implements Runnable {
     private static boolean isRunning;
     private DatagramSocket socket;
 
-    public UDPReceiver(Observer observer, DatagramSocket socket) {
+    public UDPReceiver(Observer observer, int port) {
         this.observer = observer;
-        this.socket = socket;
+        try {
+            this.socket = new DatagramSocket(port);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

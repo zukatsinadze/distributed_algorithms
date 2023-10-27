@@ -6,18 +6,19 @@ import cs451.Message;
 
 import java.net.DatagramSocket;
 import java.util.HashMap;
+import java.util.HashSet;
 
 
 public class PerfectLink implements Observer {
     private final StubbornLink stubbornLink;
     private final Observer observer;
 
-    private HashMap<Integer, Message> deliveredMessages;
+    private HashSet<Integer> deliveredMessages;
 
-    public PerfectLink(int port, Observer observer, DatagramSocket socket, HashMap<Byte, Host> hostMap) {
-        this.stubbornLink = new StubbornLink(this, socket, hostMap);
+    public PerfectLink(int port, Observer observer, HashMap<Byte, Host> hostMap) {
+        this.stubbornLink = new StubbornLink(this, port, hostMap);
         this.observer = observer;
-        this.deliveredMessages = new HashMap<>();
+        this.deliveredMessages = new HashSet<>();
     }
 
     public void send(Message message) {
@@ -35,8 +36,8 @@ public class PerfectLink implements Observer {
     @Override
     public void deliver(Message message) {
         int key = message.uniqueId();
-        if (!deliveredMessages.containsKey(key)) {
-            deliveredMessages.put(key, message);
+        if (!deliveredMessages.contains(key)) {
+            deliveredMessages.add(key);
             observer.deliver(message);
         }
     }
