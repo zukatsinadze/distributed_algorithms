@@ -10,9 +10,7 @@ import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+
 
 
 
@@ -20,59 +18,62 @@ public class Process implements Observer {
     private Host me;
     private PerfectLink pl;
     private final ConcurrentLinkedQueue<String> logs = new ConcurrentLinkedQueue<>();
-    Queue<String> intermediateLogs;
     private final String output;
+    private FileOutputStream outputStream;
 
-    private final AtomicBoolean writing;
-    Lock lock = new ReentrantLock();
-
-
+    private final Object logLock = new Object(); // Lock for synchronized access to the logs
+    private final Object outputLock = new Object();
+    private Queue<String> logsCopy;
 
     public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
         this.me = hostMap.get(id);
         this.pl = new PerfectLink(this.me.getPort(), this, hostMap);
         this.output = output;
 
+        try {
+            this.outputStream = new FileOutputStream(this.output, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        this.writing = new AtomicBoolean(false);
+
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 try {
-                    if(logs.size() > 100000 && !writing.get()){
-                        System.out.println("Logs more than 100000, writing to file");
-                        writing.compareAndSet(false, true);
-                        // Copy logs to a new queue
-                        lock.lock();
-                        intermediateLogs = new LinkedList<>(logs);
-                        System.out.println("Size of intermediate logs: " + intermediateLogs.size());
-                        logs.clear();
-                        lock.unlock();
-                        try (var outputStream = new FileOutputStream(output, true)) {
-                            // Dequeue from logs and write to file
-                            while(!intermediateLogs.isEmpty()){
-                                // System.out.println("Remaining logs: " + intermediateLogs.size());
-                                outputStream.write(intermediateLogs.peek().getBytes());
-                                intermediateLogs.remove();
+                    synchronized (outputLock) {
+                        if (logs.size() > 10000) {
+                            synchronized (logLock) {
+                                logsCopy = new LinkedList<>(logs);
+                                logs.clear();
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        finally {
-                            System.out.println("Done writing: Logs more than 100000");
-                            writing.compareAndSet(true, false);
+                            System.out.println("Dumping logs: " + logsCopy.size());
+
+                            while(!logsCopy.isEmpty()){
+                                outputStream.write(logsCopy.peek().getBytes());
+                                logsCopy.remove();
+                            }
+                            System.out.println("Dumping finished");
+
                         }
                     }
-                } catch (Exception e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 20);
+        }, 0, 500);
+
     }
+
+
+
 
     public void send(Message message) {
         pl.send(message);
-        logs.add("b " + message.getMessageId() + '\n');
+        synchronized (logLock) {
+            logs.add("b " + message.getMessageId() + '\n');
+        }
+
     }
 
     public byte getId() {
@@ -93,24 +94,24 @@ public class Process implements Observer {
 
     @Override
     public void deliver(Message message) {
-        logs.add("d " + message.getSenderId() + " " + message.getMessageId() + '\n');
+        synchronized (logLock) {
+            logs.add("d " + message.getSenderId() + " " + message.getMessageId() + '\n');
+        }
     }
 
     public  void dumpLogs() {
-        while (writing.get()) {
-            System.out.println("Waiting for writing to finish");
-        }
-
         try {
-            FileOutputStream outputStream = new FileOutputStream(this.output, true);
-            for (String log : logs) {
-                outputStream.write(log.getBytes());
-            }
+            synchronized (outputLock) {
+                if (logsCopy != null)
+                    for (String log : logsCopy) {
+                        outputStream.write(log.getBytes());
+                    }
 
-            for (String log : intermediateLogs) {
-                outputStream.write(log.getBytes());
-            }
 
+                for (String log : logs) {
+                    outputStream.write(log.getBytes());
+                }
+            }
             outputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
