@@ -26,7 +26,9 @@ public class StubbornLink implements Observer {
         fl.start();
         consumePool();
     }
-
+    public int getMessagePoolSize() {
+        return messagePool.size();
+    }
     private void consumePool() {
         (new Timer()).schedule(new TimerTask() {
             @Override
@@ -43,6 +45,12 @@ public class StubbornLink implements Observer {
             fl.send(message);
             return;
         }
+
+        // System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024) );
+        // if memory usage is bigger than 60 mb start garbage collection
+        // if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 60 * 1024 * 1024) {
+            // System.gc();
+        // }
         messagePool.put(message.uniqueId(), message);
     }
 
@@ -52,11 +60,19 @@ public class StubbornLink implements Observer {
 
     @Override
     public void deliver(Message message) {
-        if (message.isAck()) {
-            messagePool.remove(message.uniqueId());
-            // System.out.println("Recieved ack, removing from pool, pool size: " + messagePool.size());
+        if (message.isAckAck()) {
+            observer.deliver(message);
             return;
         }
+
+        if (message.isAck()) {
+            messagePool.remove(message.uniqueId());
+            System.out.println("Recieved ack, removing from pool, pool size: " + messagePool.size());
+            message.ack_ack();
+            send(message);
+            return;
+        }
+
         observer.deliver(message);
         message.ack();
         send(message);

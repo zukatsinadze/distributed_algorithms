@@ -30,6 +30,7 @@ public class UDPReceiver implements Runnable {
                 Message message = Message.fromBytes(receivePacket.getData());
                 observer.deliver(message);
             }
+            this.socket.close();
 
         } catch (Exception e) {
             e.printStackTrace();

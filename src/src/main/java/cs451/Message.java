@@ -9,21 +9,22 @@ public class Message implements Serializable {
     private byte senderId;
     private byte receiverId;
     private boolean ack = false;
-    private String messageContent; // New variable
+    private boolean ack_ack = false;
+    // private String messageContent; // New variable
 
-    public Message(int messageId, byte senderId, byte receiverId, String messageContent) {
+    public Message(int messageId, byte senderId, byte receiverId) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
-        this.messageContent = messageContent;
+        // this.messageContent = messageContent;
     }
 
-    public Message(int messageId, byte senderId, byte receiverId, boolean ack, String messageContent) {
+    public Message(int messageId, byte senderId, byte receiverId, boolean ack, boolean ack_ack) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.ack = ack;
-        this.messageContent = messageContent;
+        this.ack_ack = ack_ack;
     }
 
     public int getMessageId() {
@@ -38,9 +39,9 @@ public class Message implements Serializable {
         return receiverId;
     }
 
-    public String getMessageContent() {
-        return messageContent;
-    }
+    // public String getMessageContent() {
+    //     return messageContent;
+    // }
 
     public void ack() {
         byte temp = senderId;
@@ -49,8 +50,20 @@ public class Message implements Serializable {
         this.ack = true;
     }
 
+    public void ack_ack() {
+        byte temp = senderId;
+        senderId = receiverId;
+        receiverId = temp;
+        this.ack = true;
+        this.ack_ack = true;
+    }
+
     public boolean isAck() {
         return ack;
+    }
+
+    public boolean isAckAck() {
+        return ack_ack;
     }
 
     @Override
@@ -64,6 +77,8 @@ public class Message implements Serializable {
     }
 
     public int uniqueId() {
+        if (ack_ack)
+            return Objects.hash(messageId, senderId, receiverId);
         if (ack)
             return Objects.hash(messageId, receiverId, senderId);
         return Objects.hash(messageId, senderId, receiverId);
@@ -75,8 +90,8 @@ public class Message implements Serializable {
     }
 
     public byte[] getBytes() {
-        byte[] contentBytes = messageContent.getBytes(StandardCharsets.UTF_8);
-        byte[] result = new byte[7 + contentBytes.length];
+        // byte[] contentBytes = messageContent.getBytes(StandardCharsets.UTF_8);
+        byte[] result = new byte[8];
 
         result[0] = (byte)(messageId >> 24);
         result[1] = (byte)(messageId >> 16);
@@ -87,8 +102,9 @@ public class Message implements Serializable {
         result[5] = receiverId;
 
         result[6] = (ack) ? (byte)1 : (byte)0;
+        result[7] = (ack_ack) ? (byte)1 : (byte)0;
 
-        System.arraycopy(contentBytes, 0, result, 7, contentBytes.length);
+        // System.arraycopy(contentBytes, 0, result, 7, contentBytes.length);
 
         return result;
     }
@@ -97,8 +113,9 @@ public class Message implements Serializable {
         int intValue = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
         byte byteValue1 = bytes[4];
         byte byteValue2 = bytes[5];
-        boolean boolValue = bytes[6] != 0;
-        String content = new String(bytes, 7, bytes.length - 7, StandardCharsets.UTF_8);
-        return new Message(intValue, byteValue1, byteValue2, boolValue, content);
+        boolean boolValue1 = bytes[6] != 0;
+        boolean boolValue2 = bytes[7] != 0;
+        // String content = new String(bytes, 7, bytes.length - 7, StandardCharsets.UTF_8);
+        return new Message(intValue, byteValue1, byteValue2, boolValue1, boolValue2);
     }
 }

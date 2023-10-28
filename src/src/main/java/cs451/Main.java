@@ -1,11 +1,9 @@
 package cs451;
 
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Main {
     static HashMap<Byte, Host> hostMap = new HashMap<>();
@@ -22,7 +20,6 @@ public class Main {
         // write/flush output file if necessary
         System.out.println("Writing output.");
         dumpLogs();
-        checkNumberOfLogsIsCorrect();
     }
 
     private static void initSignalHandlers() {
@@ -48,7 +45,7 @@ public class Main {
     private static void sendMessages() {
         if (process.getId() != targetId) {
             for (int i = 1; i < numberOfMessages + 1; i++) {
-                process.send(new Message(i, process.getId(), targetId, ""));
+                process.send(new Message(i, process.getId(), targetId));
             }
         }
     }
@@ -57,31 +54,6 @@ public class Main {
         process.dumpLogs();
     }
 
-    private static void checkNumberOfLogsIsCorrect() {
-        if (targetId == parser.myId()) {
-            // I am receiver
-            if (process.getLogs().size() != numberOfMessages * (parser.hosts().size() - 1)) {
-                System.out.println("Number of logs is not correct for the receiver " +
-                        parser.myId());
-                System.out.println("Expected: " +
-                        numberOfMessages * (parser.hosts().size() - 1));
-                System.out.println("Actual: " + process.getLogs().size());
-                return;
-            }
-        } else {
-            // I am sender
-            if (process.getLogs().size() != numberOfMessages) {
-                // This seems to be mostly correct during stresstest
-                System.out.println("Number of logs is not correct for the sender " +
-                        parser.myId());
-                System.out.println("Expected: " + numberOfMessages);
-                System.out.println("Actual: " + process.getLogs().size());
-                return;
-            }
-        }
-        System.out.println("Number of logs is correct for the process " +
-                parser.myId());
-    }
 
     public static void main(String[] args) throws InterruptedException {
         parser = new Parser(args);
