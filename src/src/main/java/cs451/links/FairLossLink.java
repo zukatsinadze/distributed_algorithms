@@ -11,8 +11,8 @@ import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
 public class FairLossLink implements Observer {
-    // Threads used: Main, Signal Handler, Log Dumper, GC Runner, UDP Receiver, Sender Pool
-    private final int SENDER_NUMBER = 3;
+    // Threads used: Main, Signal Handler, Log Dumper, UDP Receiver, Sender Pool
+    private final int SENDER_NUMBER = 2;
     private final ExecutorService senderPool = Executors.newFixedThreadPool(SENDER_NUMBER);
     private final Observer observer;
     private HashMap<Byte, Host> hostMap;

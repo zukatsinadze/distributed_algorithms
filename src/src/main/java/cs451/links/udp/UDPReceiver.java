@@ -31,6 +31,7 @@ public class UDPReceiver implements Runnable {
                 observer.deliver(message);
             }
             this.socket.close();
+            System.out.println("UDPReceiver stopped");
 
         } catch (Exception e) {
             e.printStackTrace();

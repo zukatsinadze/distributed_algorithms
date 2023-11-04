@@ -2,7 +2,6 @@ package cs451;
 
 import cs451.links.PerfectLink;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,31 +17,39 @@ public class Process implements Observer {
     private PerfectLink pl;
 
     private final ConcurrentHashMap<Byte, HashSet<Integer>> logs = new ConcurrentHashMap<>();
-    private final String output;
 
     private final Object logLock = new Object(); // Lock for synchronized access to the logs
     private final Object outputLock = new Object();
     private HashMap<Byte, HashSet<Integer>> logsCopy;
 
+    static Logger outputWriter;
+
+
     public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
         this.id = id;
         this.me = hostMap.get(id);
         this.pl = new PerfectLink(this.me.getPort(), this, hostMap);
-        this.output = output;
+
+        try {
+            outputWriter = new Logger(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         for (Byte key : hostMap.keySet()) {
             logs.put(key, new HashSet<>());
         }
 
-        // new Timer().schedule(new TimerTask() {
-        //     @Override
-        //     public void run() {
-        //         // System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
-        //         if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 45 * 1024 * 1024) {
-        //             System.gc();
-        //         }
-        //     }
-        // }, 0, 1000);
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                // System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
+                if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 45 * 1024 * 1024) {
+                    System.gc();
+                }
+            }
+        }, 0, 1000);
 
         new Timer().schedule(new TimerTask() {
             @Override
@@ -64,29 +71,26 @@ public class Process implements Observer {
                         // System.out.println("Dumping logs: " + logsCopy.size());
 
                         synchronized (outputLock) {
-                            FileOutputStream outputStream = new FileOutputStream(output, true);
                             for (Byte key : logsCopy.keySet()) {
                                 if (key == id) {
                                     for (Integer msgId : logsCopy.get(key)) {
-                                        outputStream.write(("b " + msgId + '\n').getBytes());
+                                        outputWriter.sent(msgId);
                                     }
                                 }
                                 else {
                                     for (Integer msgId : logsCopy.get(key)) {
-                                        outputStream.write(("d " + key + " " + msgId + '\n').getBytes());
+                                        outputWriter.delivered(key, msgId);
                                     }
                                 }
                             }
-                            outputStream.close();
                         }
                         logsCopy.clear();
-
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }, 1000, 500);
+        }, 100, 100);
 
     }
 
@@ -96,6 +100,8 @@ public class Process implements Observer {
         synchronized (logLock) {
             logs.get(id).add(message.getMessageId());
         }
+        // outputWriter.broadcasted(message.getMessageId());
+
     }
 
     public byte getId() {
@@ -115,22 +121,29 @@ public class Process implements Observer {
         synchronized (logLock) {
             logs.get(message.getSenderId()).add(message.getMessageId());
         }
+        // outputWriter.delivered(message.getSenderId(), message.getMessageId());
     }
 
     public void dumpLogs() {
+        // try {
+        //     outputWriter.flush();
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
+        // System.out.println("Done dumping all logs!");
+        // outputWriter.flush();
         try {
-            FileOutputStream outputStream = new FileOutputStream(output, true);
             synchronized (outputLock) {
                 if (logsCopy != null) {
                     for (Byte key : logsCopy.keySet()) {
                         if (key == id) {
                             for (Integer msgId : logsCopy.get(key)) {
-                                outputStream.write(("b " + msgId + '\n').getBytes());
+                                outputWriter.sent(msgId);
                             }
                         }
                         else {
                             for (Integer msgId : logsCopy.get(key)) {
-                                outputStream.write(("d " + key + " " + msgId + '\n').getBytes());
+                                outputWriter.delivered(key, msgId);
                             }
                         }
                     }
@@ -139,20 +152,19 @@ public class Process implements Observer {
                 for (Byte key : logs.keySet()) {
                     if (key == id) {
                         for (Integer msgId : logs.get(key)) {
-                            outputStream.write(("b " + msgId + '\n').getBytes());
+                            outputWriter.sent(msgId);
                         }
                     }
                     else {
                         for (Integer msgId : logs.get(key)) {
-                            outputStream.write(("d " + key + " " + msgId + '\n').getBytes());
+                            outputWriter.delivered(key, msgId);
                         }
                     }
                 }
 
-
+                outputWriter.flush();
                 System.out.println("Final Dumping finished");
             }
-            outputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

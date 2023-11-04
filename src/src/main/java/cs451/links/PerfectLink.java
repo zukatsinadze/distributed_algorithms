@@ -22,11 +22,11 @@ public class PerfectLink implements Observer {
     }
 
     public void send(Message message) {
-
-        if (stubbornLink.getMessagePoolSize() > (150000 / (this.hostMap.size() - 1))) {
-            while (stubbornLink.getMessagePoolSize() > 100) {
+        int windowSize = 500000 / (this.hostMap.size() - 1);
+        if (stubbornLink.getMessagePoolSize() > windowSize) {
+            while (stubbornLink.getMessagePoolSize() > windowSize / 10) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -46,8 +46,11 @@ public class PerfectLink implements Observer {
 
     @Override
     public void deliver(Message message) {
+        if (message.isAckAck()) {
+            deliveredMessages.remove(message.uniqueId());
+            return;
+        }
         if (deliveredMessages.add(message.uniqueId()))
             observer.deliver(message);
     }
-
 }
