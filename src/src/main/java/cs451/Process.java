@@ -34,16 +34,6 @@ public class Process implements Observer {
             logs.put(key, new HashSet<>());
         }
 
-        // new Timer().schedule(new TimerTask() {
-        //     @Override
-        //     public void run() {
-        //         // System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
-        //         if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 45 * 1024 * 1024) {
-        //             System.gc();
-        //         }
-        //     }
-        // }, 0, 1000);
-
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
@@ -53,7 +43,7 @@ public class Process implements Observer {
                         curr_size += logs.get(key).size();
                     }
 
-                    if (curr_size > 100000) {
+                    if (curr_size > 10000) {
                         synchronized (logLock) {
                             logsCopy = new HashMap<>(logs);
                             for (Byte key : logs.keySet()) {
@@ -86,7 +76,7 @@ public class Process implements Observer {
                     e.printStackTrace();
                 }
             }
-        }, 1000, 500);
+        }, 0, 100);
 
     }
 
@@ -103,7 +93,7 @@ public class Process implements Observer {
     }
 
     public void stopProcessing() {
-        PerfectLink.stop();
+        pl.stop();
     }
 
     public void startProcessing() {
@@ -115,6 +105,10 @@ public class Process implements Observer {
         synchronized (logLock) {
             logs.get(message.getSenderId()).add(message.getMessageId());
         }
+    }
+
+    @Override
+    public void deliver(MessageBatch messages) {
     }
 
     public void dumpLogs() {

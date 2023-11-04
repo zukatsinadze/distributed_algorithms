@@ -3,6 +3,7 @@ package cs451.links;
 import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
+import cs451.MessageBatch;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,14 +41,18 @@ public class PerfectLink implements Observer {
         stubbornLink.start();
     }
 
-    public static void stop() {
-        StubbornLink.stop();
+    public void stop() {
+        stubbornLink.stop();
     }
 
     @Override
     public void deliver(Message message) {
         if (deliveredMessages.add(message.uniqueId()))
             observer.deliver(message);
+    }
+
+    @Override
+    public void deliver(MessageBatch messages) {
     }
 
 }

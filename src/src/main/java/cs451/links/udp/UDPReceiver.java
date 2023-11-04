@@ -2,7 +2,9 @@ package cs451.links.udp;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+
 import cs451.Message;
+import cs451.MessageBatch;
 import cs451.Observer;
 
 public class UDPReceiver implements Runnable {
@@ -22,13 +24,13 @@ public class UDPReceiver implements Runnable {
     @Override
     public void run() {
         try {
-            byte[] receiveData = new byte[8];
+            byte[] receiveData = new byte[Message.SIZE * 8];
             isRunning = true;
             while (isRunning) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 socket.receive(receivePacket);
-                Message message = Message.fromBytes(receivePacket.getData());
-                observer.deliver(message);
+                MessageBatch messages = MessageBatch.fromBytes(receivePacket.getData());
+                observer.deliver(messages);
             }
             this.socket.close();
 

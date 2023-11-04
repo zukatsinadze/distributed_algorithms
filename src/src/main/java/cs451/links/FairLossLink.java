@@ -3,6 +3,8 @@ package cs451.links;
 import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
+import cs451.MessageBatch;
+
 import java.net.DatagramSocket;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
@@ -11,7 +13,7 @@ import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
 public class FairLossLink implements Observer {
-    // Threads used: Main, Signal Handler, Log Dumper, GC Runner, UDP Receiver, Sender Pool
+    // Threads used: Main, Signal Handler, Log Dumper, UDP Receiver, Consume Pool
     private final int SENDER_NUMBER = 3;
     private final ExecutorService senderPool = Executors.newFixedThreadPool(SENDER_NUMBER);
     private final Observer observer;
@@ -31,21 +33,25 @@ public class FairLossLink implements Observer {
         this.receiverThread = new Thread(new UDPReceiver(this, port));
     }
 
-    void send(Message message) {
-        Host host = hostMap.get(message.getReceiverId());
-        senderPool.submit(new UDPSender(host.getIp(), host.getPort(), message, socket));
+    void send(MessageBatch messages) {
+        Host host = hostMap.get(messages.getReceiverId());
+        senderPool.submit(new UDPSender(host.getIp(), host.getPort(), messages, socket));
     }
 
     void start() {
         receiverThread.start();
     }
 
-    public static void stop() {
+    public void stop() {
         UDPReceiver.stopReceiver();
     }
 
     @Override
+    public void deliver(MessageBatch messages) {
+        observer.deliver(messages);
+    }
+
+    @Override
     public void deliver(Message message) {
-        observer.deliver(message);
     }
 }

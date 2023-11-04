@@ -4,15 +4,17 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+
 import cs451.Message;
+import cs451.MessageBatch;
 
 public class UDPSender implements Runnable {
     private String serverAddress;
     private int serverPort;
-    private Message messageToSend;
+    private MessageBatch messageToSend;
     private DatagramSocket socket;
 
-    public UDPSender(String serverAddress, int serverPort, Message messageToSend, DatagramSocket socket) {
+    public UDPSender(String serverAddress, int serverPort, MessageBatch messageToSend, DatagramSocket socket) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         this.messageToSend = messageToSend;
