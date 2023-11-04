@@ -22,7 +22,7 @@ public class UDPReceiver implements Runnable {
     @Override
     public void run() {
         try {
-            byte[] receiveData = new byte[1024];
+            byte[] receiveData = new byte[8];
             isRunning = true;
             while (isRunning) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);

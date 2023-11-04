@@ -60,16 +60,8 @@ public class StubbornLink implements Observer {
 
     @Override
     public void deliver(Message message) {
-        if (message.isAckAck()) {
-            observer.deliver(message);
-            return;
-        }
-
         if (message.isAck()) {
             messagePool.remove(message.uniqueId());
-            System.out.println("Recieved ack, removing from pool, pool size: " + messagePool.size());
-            message.ack_ack();
-            send(message);
             return;
         }
 

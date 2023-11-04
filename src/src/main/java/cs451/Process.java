@@ -4,18 +4,11 @@ import cs451.links.PerfectLink;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-
 
 
 
@@ -25,7 +18,6 @@ public class Process implements Observer {
     private PerfectLink pl;
 
     private final ConcurrentHashMap<Byte, HashSet<Integer>> logs = new ConcurrentHashMap<>();
-    private AtomicInteger curr_size = new AtomicInteger(0);
     private final String output;
 
     private final Object logLock = new Object(); // Lock for synchronized access to the logs
@@ -42,37 +34,37 @@ public class Process implements Observer {
             logs.put(key, new HashSet<>());
         }
 
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
-                if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 45 * 1024 * 1024) {
-                    System.gc();
-                }
-            }
-        }, 0, 1000);
+        // new Timer().schedule(new TimerTask() {
+        //     @Override
+        //     public void run() {
+        //         // System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
+        //         if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 45 * 1024 * 1024) {
+        //             System.gc();
+        //         }
+        //     }
+        // }, 0, 1000);
 
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 try {
-                    synchronized (outputLock) {
-                        if (curr_size.get() > 10000) {
-                            curr_size.set(0);
-                            synchronized (logLock) {
-                                logsCopy = new HashMap<>(logs);
-                                for (Byte key : logs.keySet()) {
-                                    logs.put(key, new HashSet<>());
+                    int curr_size = 0;
+                    for (byte key : logs.keySet()) {
+                        curr_size += logs.get(key).size();
+                    }
 
-
-
-                                    // logs.put(key) = new ConcurrentHashSet<>();
-                                }
+                    if (curr_size > 100000) {
+                        synchronized (logLock) {
+                            logsCopy = new HashMap<>(logs);
+                            for (Byte key : logs.keySet()) {
+                                logs.put(key, new HashSet<>());
                             }
+                        }
 
-                            System.out.println("Dumping logs: " + logsCopy.size());
+                        // System.out.println("Dumping logs: " + logsCopy.size());
+
+                        synchronized (outputLock) {
                             FileOutputStream outputStream = new FileOutputStream(output, true);
-
                             for (Byte key : logsCopy.keySet()) {
                                 if (key == id) {
                                     for (Integer msgId : logsCopy.get(key)) {
@@ -85,16 +77,16 @@ public class Process implements Observer {
                                     }
                                 }
                             }
-                            logsCopy.clear();
                             outputStream.close();
-                            System.out.println("Dumping finished");
                         }
+                        logsCopy.clear();
+
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }, 0, 10);
+        }, 1000, 500);
 
     }
 
@@ -103,7 +95,6 @@ public class Process implements Observer {
         pl.send(message);
         synchronized (logLock) {
             logs.get(id).add(message.getMessageId());
-            curr_size.getAndIncrement();
         }
     }
 
@@ -123,7 +114,6 @@ public class Process implements Observer {
     public void deliver(Message message) {
         synchronized (logLock) {
             logs.get(message.getSenderId()).add(message.getMessageId());
-            curr_size.getAndIncrement();
         }
     }
 

@@ -6,7 +6,6 @@ import cs451.Message;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Objects;
 
 
 public class PerfectLink implements Observer {
@@ -25,7 +24,7 @@ public class PerfectLink implements Observer {
     public void send(Message message) {
 
         if (stubbornLink.getMessagePoolSize() > (150000 / (this.hostMap.size() - 1))) {
-            while (stubbornLink.getMessagePoolSize() > 10) {
+            while (stubbornLink.getMessagePoolSize() > 100) {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -34,7 +33,6 @@ public class PerfectLink implements Observer {
             }
 
         }
-        System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
         stubbornLink.send(message);
     }
 
@@ -48,12 +46,6 @@ public class PerfectLink implements Observer {
 
     @Override
     public void deliver(Message message) {
-        if (message.isAckAck()) {
-            deliveredMessages.remove(message.uniqueId());
-            return;
-        }
-
-
         if (deliveredMessages.add(message.uniqueId()))
             observer.deliver(message);
     }
