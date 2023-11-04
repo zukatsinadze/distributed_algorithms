@@ -105,7 +105,7 @@ public class Process implements Observer {
     }
 
     public byte getId() {
-        return me.getId();
+        return id;
     }
 
     public void stopProcessing() {

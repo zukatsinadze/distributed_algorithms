@@ -14,7 +14,7 @@ public class Logger {
 
     public void delivered(int senderId, int messageId) {
         try {
-            writer.write("d " + senderId + " " + messageId + '\n');
+            writer.write("d " + (senderId + 1) +  " " + messageId + '\n');
         } catch (IOException e) {
             System.out.println("Error writing to file");
         }
