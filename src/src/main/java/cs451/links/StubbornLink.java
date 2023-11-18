@@ -3,14 +3,12 @@ package cs451.links;
 import cs451.Observer;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
 import cs451.Message;
-// import cs451.Constants;
 
 public class StubbornLink implements Observer {
     private final FairLossLink fl;
@@ -35,9 +33,9 @@ public class StubbornLink implements Observer {
         (new Timer()).schedule(new TimerTask() {
             @Override
             public void run() {
-                for (Map.Entry<Integer, Message> entry : messagePool.entrySet()) {
-                    fl.send(entry.getValue());
-                }
+                messagePool.forEach((key, val) -> {
+                    fl.send(val);
+                });
             }
         }, 1000, 2000);
     }

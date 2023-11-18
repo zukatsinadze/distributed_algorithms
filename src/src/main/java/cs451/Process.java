@@ -44,7 +44,6 @@ public class Process implements Observer {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                // System.out.println("memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
                 if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 45 * 1024 * 1024) {
                     System.gc();
                 }
@@ -134,36 +133,38 @@ public class Process implements Observer {
         // outputWriter.flush();
         try {
             synchronized (outputLock) {
-                if (logsCopy != null) {
-                    for (Byte key : logsCopy.keySet()) {
+                synchronized (logLock) {
+                    if (logsCopy != null) {
+                        for (Byte key : logsCopy.keySet()) {
+                            if (key == id) {
+                                for (Integer msgId : logsCopy.get(key)) {
+                                    outputWriter.sent(msgId);
+                                }
+                            }
+                            else {
+                                for (Integer msgId : logsCopy.get(key)) {
+                                    outputWriter.delivered(key, msgId);
+                                }
+                            }
+                        }
+                    }
+
+                    for (Byte key : logs.keySet()) {
                         if (key == id) {
-                            for (Integer msgId : logsCopy.get(key)) {
+                            for (Integer msgId : logs.get(key)) {
                                 outputWriter.sent(msgId);
                             }
                         }
                         else {
-                            for (Integer msgId : logsCopy.get(key)) {
+                            for (Integer msgId : logs.get(key)) {
                                 outputWriter.delivered(key, msgId);
                             }
                         }
                     }
-                }
 
-                for (Byte key : logs.keySet()) {
-                    if (key == id) {
-                        for (Integer msgId : logs.get(key)) {
-                            outputWriter.sent(msgId);
-                        }
-                    }
-                    else {
-                        for (Integer msgId : logs.get(key)) {
-                            outputWriter.delivered(key, msgId);
-                        }
-                    }
+                    outputWriter.flush();
+                    System.out.println("Final Dumping finished");
                 }
-
-                outputWriter.flush();
-                System.out.println("Final Dumping finished");
             }
         } catch (IOException e) {
             e.printStackTrace();
