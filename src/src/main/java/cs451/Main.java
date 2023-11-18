@@ -8,7 +8,6 @@ import java.util.HashMap;
 public class Main {
     static HashMap<Byte, Host> hostMap = new HashMap<>();
     static int numberOfMessages;
-    static byte targetId;
     static Process process;
     static Parser parser;
 
@@ -35,18 +34,14 @@ public class Main {
         try (BufferedReader br = new BufferedReader(new FileReader(parser.config()))) {
             String[] parts = br.readLine().split(" ");
             numberOfMessages = Integer.parseInt(parts[0]);
-            targetId = (byte) (Integer.parseInt(parts[1]) - 1);
-
         } catch (IOException e) {
             System.err.println("Error reading the file: " + e.getMessage());
         }
     }
 
     private static void sendMessages() {
-        if (process.getId() != targetId) {
-            for (int i = 1; i < numberOfMessages + 1; i++) {
-                process.send(new Message(i, process.getId(), targetId));
-            }
+        for (int i = 1; i < numberOfMessages + 1; ++i) {
+            process.broadcast(i);
         }
     }
 

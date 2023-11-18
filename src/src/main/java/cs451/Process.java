@@ -1,6 +1,6 @@
 package cs451;
 
-import cs451.links.PerfectLink;
+import cs451.broadcast.BestEffortBroadcast;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Process implements Observer {
     private final byte id;
     private Host me;
-    private PerfectLink pl;
+    private BestEffortBroadcast beb;
 
     private final ConcurrentHashMap<Byte, HashSet<Integer>> logs = new ConcurrentHashMap<>();
 
@@ -28,7 +28,7 @@ public class Process implements Observer {
     public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
         this.id = id;
         this.me = hostMap.get(id);
-        this.pl = new PerfectLink(this.me.getPort(), this, hostMap);
+        this.beb = new BestEffortBroadcast(this.me.getPort(), this, hostMap);
 
         try {
             outputWriter = new Logger(output);
@@ -67,8 +67,6 @@ public class Process implements Observer {
                             }
                         }
 
-                        // System.out.println("Dumping logs: " + logsCopy.size());
-
                         synchronized (outputLock) {
                             for (Byte key : logsCopy.keySet()) {
                                 if (key == id) {
@@ -93,14 +91,11 @@ public class Process implements Observer {
 
     }
 
-
-    public void send(Message message) {
-        pl.send(message);
+    public void broadcast(int msgId) {
+        this.beb.broadcast(msgId, id);
         synchronized (logLock) {
-            logs.get(id).add(message.getMessageId());
+            logs.get(id).add(msgId);
         }
-        // outputWriter.broadcasted(message.getMessageId());
-
     }
 
     public byte getId() {
@@ -108,11 +103,11 @@ public class Process implements Observer {
     }
 
     public void stopProcessing() {
-        PerfectLink.stop();
+        BestEffortBroadcast.stop();
     }
 
     public void startProcessing() {
-        pl.start();
+        this.beb.start();
     }
 
     @Override
@@ -120,17 +115,9 @@ public class Process implements Observer {
         synchronized (logLock) {
             logs.get(message.getSenderId()).add(message.getMessageId());
         }
-        // outputWriter.delivered(message.getSenderId(), message.getMessageId());
     }
 
     public void dumpLogs() {
-        // try {
-        //     outputWriter.flush();
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
-        // System.out.println("Done dumping all logs!");
-        // outputWriter.flush();
         try {
             synchronized (outputLock) {
                 synchronized (logLock) {
