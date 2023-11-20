@@ -40,8 +40,8 @@ public class PerfectLink implements Observer {
         stubbornLink.start();
     }
 
-    public static void stop() {
-        StubbornLink.stop();
+    public void stop() {
+        stubbornLink.stop();
     }
 
     @Override

@@ -48,8 +48,8 @@ public class StubbornLink implements Observer {
         messagePool.put(message.uniqueId(), message);
     }
 
-    public static void stop() {
-        FairLossLink.stop();
+    public void stop() {
+        fl.stop();
     }
 
     @Override
