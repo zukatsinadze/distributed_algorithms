@@ -18,7 +18,7 @@ public class Main {
 
         // write/flush output file if necessary
         System.out.println("Writing output.");
-        dumpLogs();
+        // dumpLogs();
     }
 
     private static void initSignalHandlers() {
@@ -54,8 +54,6 @@ public class Main {
         parser = new Parser(args);
         parser.parse();
 
-        initSignalHandlers();
-
         // example
         long pid = ProcessHandle.current().pid();
         System.out.println("My PID: " + pid + "\n");
@@ -89,6 +87,8 @@ public class Main {
 
         process = new Process((byte)(parser.myId() - 1), hostMap, parser.output());
         process.startProcessing();
+
+        initSignalHandlers();
 
         System.out.println("Broadcasting and delivering messages...\n");
         sendMessages();

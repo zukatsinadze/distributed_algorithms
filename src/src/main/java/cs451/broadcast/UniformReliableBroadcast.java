@@ -34,16 +34,16 @@ public class UniformReliableBroadcast implements Observer {
 
     @Override
     public void deliver(Message message) {
-        System.out.println("Deliver size: " + delivered.size() + " pending: " + pending.size() + " mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
         Integer msgUniqueId = message.uniqueMessageOriginalSenderId();
-
+        boolean broadcast = false;
         if (pending.get(msgUniqueId) == null) {
             pending.put(msgUniqueId, new int[]{message.getMessageId(), message.getOriginalSenderId(), 2});
+            broadcast = true;
         } else {
             pending.get(msgUniqueId)[2]++;
         }
 
-        if (pending.get(msgUniqueId)[2] == 2) {
+        if (broadcast) {
             sendPool.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -53,7 +53,8 @@ public class UniformReliableBroadcast implements Observer {
         }
 
         if (pending.get(msgUniqueId)[2] >= (hostMap.size() / 2) + 1 && delivered.add(msgUniqueId)) {
-            observer.deliver(new Message(message.getMessageId(), message.getOriginalSenderId(), myId, message.getOriginalSenderId()));
+            observer.deliver(message);
+            // observer.deliver(new Message(message.getMessageId(), message.getOriginalSenderId(), myId, message.getOriginalSenderId()));
         }
     }
 

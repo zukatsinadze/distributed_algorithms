@@ -3,7 +3,7 @@ package cs451;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Message implements Serializable {
+public class Message implements Serializable, Comparable<Message> {
     private final int messageId;
     private byte senderId;
     private byte receiverId;
@@ -118,5 +118,10 @@ public class Message implements Serializable {
         boolean boolValue1 = bytes[7] != 0;
         boolean boolValue2 = bytes[8] != 0;
         return new Message(intValue, byteValue1, byteValue2, byteValue3, boolValue1, boolValue2);
+    }
+
+    @Override
+    public int compareTo(Message o) {
+        return Integer.compare(messageId, o.messageId);
     }
 }

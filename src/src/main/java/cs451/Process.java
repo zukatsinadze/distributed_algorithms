@@ -1,10 +1,16 @@
 package cs451;
 
 import cs451.broadcast.UniformReliableBroadcast;
+import cs451.fifo.FIFO;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -12,9 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Process implements Observer {
     private final byte id;
     private Host me;
-    private UniformReliableBroadcast urb;
+    private FIFO fifo;
 
-    private final ConcurrentHashMap<Byte, HashSet<Integer>> logs = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Byte, ArrayList<Integer>> logs = new ConcurrentHashMap<>();
 
     private final Object logLock = new Object(); // Lock for synchronized access to the logs
     private final Object outputLock = new Object();
@@ -26,7 +32,8 @@ public class Process implements Observer {
     public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
         this.id = id;
         this.me = hostMap.get(id);
-        this.urb = new UniformReliableBroadcast(id, this.me.getPort(), this, hostMap);
+        // this.urb = new UniformReliableBroadcast(id, this.me.getPort(), this, hostMap);
+        this.fifo = new FIFO(id, this.me.getPort(), this, hostMap);
 
         try {
             outputWriter = new Logger(output);
@@ -35,7 +42,7 @@ public class Process implements Observer {
         }
 
         for (Byte key : hostMap.keySet()) {
-            logs.put(key, new HashSet<>());
+            logs.put(key, new ArrayList<>());
         }
 
         // new Timer().schedule(new TimerTask() {
@@ -80,10 +87,8 @@ public class Process implements Observer {
     }
 
     public void broadcast(int msgId) {
-        this.urb.broadcast(msgId, id);
-        synchronized (logLock) {
-            logs.get(id).add(msgId);
-        }
+        this.fifo.broadcast(msgId, id);
+        outputWriter.sent(msgId);
     }
 
     public byte getId() {
@@ -91,52 +96,44 @@ public class Process implements Observer {
     }
 
     public void stopProcessing() {
-        // urb.deliverAll();
-        urb.stop();
+        fifo.stop();
+        try {
+            outputWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void startProcessing() {
-        this.urb.start();
+        this.fifo.start();
     }
 
     @Override
     public void deliver(Message message) {
-        if (message.getOriginalSenderId() == id)
-            return;
-        synchronized (logLock) {
-            logs.get(message.getOriginalSenderId()).add(message.getMessageId());
-        }
+        // synchronized (logLock) {
+            // logs.get(message.getOriginalSenderId()).add(message.getMessageId());
+        // }
+        outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
     }
 
     public void dumpLogs() {
         try {
             synchronized (outputLock) {
                 synchronized (logLock) {
-                    if (logsCopy != null) {
-                        for (Byte key : logsCopy.keySet()) {
-                            if (key == id) {
-                                for (Integer msgId : logsCopy.get(key)) {
-                                    outputWriter.sent(msgId);
-                                }
-                            }
-                            else {
-                                for (Integer msgId : logsCopy.get(key)) {
-                                    outputWriter.delivered(key, msgId);
-                                }
-                            }
-                        }
-                    }
+                    // if (logsCopy != null) {
+                    //     for (Byte key : logsCopy.keySet()) {
+
+                    //         for (Integer msgId : logsCopy.get(key)) {
+                    //             outputWriter.delivered(key, msgId);
+                    //         }
+                    //     }
+                    // }
 
                     for (Byte key : logs.keySet()) {
-                        if (key == id) {
-                            for (Integer msgId : logs.get(key)) {
-                                outputWriter.sent(msgId);
-                            }
-                        }
-                        else {
-                            for (Integer msgId : logs.get(key)) {
-                                outputWriter.delivered(key, msgId);
-                            }
+                        Collections.sort(logs.get(key));
+                        for (Integer msgId : logs.get(key)) {
+                            outputWriter.delivered(key, msgId);
                         }
                     }
 
