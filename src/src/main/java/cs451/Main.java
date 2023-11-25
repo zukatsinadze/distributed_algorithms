@@ -18,7 +18,7 @@ public class Main {
 
         // write/flush output file if necessary
         System.out.println("Writing output.");
-        // dumpLogs();
+        dumpLogs();
     }
 
     private static void initSignalHandlers() {

@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -53,19 +52,6 @@ public class PerfectLink implements Observer {
 
     public void send(Message message) {
         int windowSize = 300000 / ((this.hostMap.size() - 1));
-        // if (retry.size() > 0) {
-        //     ArrayList<Message> toRemove = new ArrayList<>(retry);
-
-        //     for (Message m : toRemove) {
-        //         if (stubbornLink.getMessagePoolSize(m.getReceiverId()) >= windowSize) {
-        //             continue;
-        //         }
-
-        //         retry.remove(m);
-        //         stubbornLink.send(m);
-        //     }
-        //     toRemove.clear();
-        // }
 
         if (stubbornLink.getMessagePoolSize(message.getReceiverId()) >= windowSize) {
             retryLock.lock();
