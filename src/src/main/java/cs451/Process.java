@@ -1,96 +1,88 @@
 package cs451;
 
 import cs451.fifo.FIFO;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-
-
 public class Process implements Observer {
-    private final byte id;
-    private Host me;
-    private FIFO fifo;
+  private final byte id;
+  private Host me;
+  private FIFO fifo;
 
-    private final ConcurrentHashMap<Byte, ArrayList<Integer>> logs = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Byte, ArrayList<Integer>> logs =
+      new ConcurrentHashMap<>();
 
-    private final ReentrantLock outputLock = new ReentrantLock();
-    private int delivered = 0;
+  private final ReentrantLock outputLock = new ReentrantLock();
+  private int delivered = 0;
 
-    static Logger outputWriter;
+  static Logger outputWriter;
 
+  public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
+    this.id = id;
+    this.me = hostMap.get(id);
+    // this.urb = new UniformReliableBroadcast(id, this.me.getPort(), this,
+    // hostMap);
+    this.fifo = new FIFO(id, this.me.getPort(), this, hostMap);
 
-    public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
-        this.id = id;
-        this.me = hostMap.get(id);
-        // this.urb = new UniformReliableBroadcast(id, this.me.getPort(), this, hostMap);
-        this.fifo = new FIFO(id, this.me.getPort(), this, hostMap);
-
-        try {
-            outputWriter = new Logger(output);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        for (Byte key : hostMap.keySet()) {
-            logs.put(key, new ArrayList<>());
-        }
+    try {
+      outputWriter = new Logger(output);
+    } catch (IOException e) {
+      e.printStackTrace();
     }
 
-    public void broadcast(int msgId) {
-        this.fifo.broadcast(msgId, id);
-        outputWriter.sent(msgId);
+    for (Byte key : hostMap.keySet()) {
+      logs.put(key, new ArrayList<>());
     }
+  }
 
-    public byte getId() {
-        return id;
+  public void broadcast(int msgId) {
+    this.fifo.broadcast(msgId, id);
+    outputWriter.sent(msgId);
+  }
+
+  public byte getId() { return id; }
+
+  public void stopProcessing() {
+    fifo.stop();
+    try {
+      outputWriter.flush();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+  }
 
-    public void stopProcessing() {
-        fifo.stop();
-        try {
-            outputWriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+  public void startProcessing() { this.fifo.start(); }
 
+  @Override
+  public void deliver(Message message) {
+    // synchronized (logLock) {
+    // logs.get(message.getOriginalSenderId()).add(message.getMessageId());
+    // }
+    try {
+      outputLock.lock();
+      delivered++;
+      if (delivered % 1000 == 0) {
+        System.out.println("Delivered " + delivered + " messages");
+      }
+      outputWriter.delivered(message.getOriginalSenderId(),
+                             message.getMessageId());
+    } finally {
+      outputLock.unlock();
     }
+  }
 
-    public void startProcessing() {
-        this.fifo.start();
+  public void dumpLogs() {
+    try {
+      outputLock.lock();
+      outputWriter.flush();
+      System.out.println("Final Dumping finished");
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      outputLock.unlock();
     }
-
-    @Override
-    public void deliver(Message message) {
-        // synchronized (logLock) {
-            // logs.get(message.getOriginalSenderId()).add(message.getMessageId());
-        // }
-        try {
-            outputLock.lock();
-            delivered++;
-            if (delivered % 1000 == 0) {
-                System.out.println("Delivered " + delivered + " messages");
-            }
-            outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
-        } finally {
-            outputLock.unlock();
-        }
-
-    }
-
-    public void dumpLogs() {
-        try {
-            outputLock.lock();
-            outputWriter.flush();
-            System.out.println("Final Dumping finished");
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            outputLock.unlock();
-        }
-    }
-
+  }
 }
