@@ -23,12 +23,8 @@ public class Process implements Observer {
 
     private final ConcurrentHashMap<Byte, ArrayList<Integer>> logs = new ConcurrentHashMap<>();
 
-    // private final Object logLock = new Object(); // Lock for synchronized access to the logs
-    // private final Object outputLock = new Object();
-    private final ReentrantLock logLock = new ReentrantLock();
     private final ReentrantLock outputLock = new ReentrantLock();
     private int delivered = 0;
-    private HashMap<Byte, HashSet<Integer>> logsCopy;
 
     static Logger outputWriter;
 
