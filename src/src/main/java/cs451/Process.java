@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 
@@ -22,8 +23,11 @@ public class Process implements Observer {
 
     private final ConcurrentHashMap<Byte, ArrayList<Integer>> logs = new ConcurrentHashMap<>();
 
-    private final Object logLock = new Object(); // Lock for synchronized access to the logs
-    private final Object outputLock = new Object();
+    // private final Object logLock = new Object(); // Lock for synchronized access to the logs
+    // private final Object outputLock = new Object();
+    private final ReentrantLock logLock = new ReentrantLock();
+    private final ReentrantLock outputLock = new ReentrantLock();
+    private int delivered = 0;
     private HashMap<Byte, HashSet<Integer>> logsCopy;
 
     static Logger outputWriter;
@@ -44,46 +48,6 @@ public class Process implements Observer {
         for (Byte key : hostMap.keySet()) {
             logs.put(key, new ArrayList<>());
         }
-
-        // new Timer().schedule(new TimerTask() {
-        //     @Override
-        //     public void run() {
-        //         try {
-        //             int curr_size = 0;
-        //             for (byte key : logs.keySet()) {
-        //                 curr_size += logs.get(key).size();
-        //             }
-
-        //             if (curr_size > 100000) {
-        //                 synchronized (logLock) {
-        //                     logsCopy = new HashMap<>(logs);
-        //                     for (Byte key : logs.keySet()) {
-        //                         logs.put(key, new HashSet<>());
-        //                     }
-        //                 }
-
-        //                 synchronized (outputLock) {
-        //                     for (Byte key : logsCopy.keySet()) {
-        //                         if (key == id) {
-        //                             for (Integer msgId : logsCopy.get(key)) {
-        //                                 outputWriter.sent(msgId);
-        //                             }
-        //                         }
-        //                         else {
-        //                             for (Integer msgId : logsCopy.get(key)) {
-        //                                 outputWriter.delivered(key, msgId);
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //                 logsCopy.clear();
-        //             }
-        //         } catch (Exception e) {
-        //             e.printStackTrace();
-        //         }
-        //     }
-        // }, 100, 100);
-
     }
 
     public void broadcast(int msgId) {
@@ -114,35 +78,28 @@ public class Process implements Observer {
         // synchronized (logLock) {
             // logs.get(message.getOriginalSenderId()).add(message.getMessageId());
         // }
-        outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
+        try {
+            outputLock.lock();
+            delivered++;
+            if (delivered % 1000 == 0) {
+                System.out.println("Delivered " + delivered + " messages");
+            }
+            outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
+        } finally {
+            outputLock.unlock();
+        }
+
     }
 
     public void dumpLogs() {
         try {
-            synchronized (outputLock) {
-                synchronized (logLock) {
-                    // if (logsCopy != null) {
-                    //     for (Byte key : logsCopy.keySet()) {
-
-                    //         for (Integer msgId : logsCopy.get(key)) {
-                    //             outputWriter.delivered(key, msgId);
-                    //         }
-                    //     }
-                    // }
-
-                    for (Byte key : logs.keySet()) {
-                        Collections.sort(logs.get(key));
-                        for (Integer msgId : logs.get(key)) {
-                            outputWriter.delivered(key, msgId);
-                        }
-                    }
-
-                    outputWriter.flush();
-                    System.out.println("Final Dumping finished");
-                }
-            }
+            outputLock.lock();
+            outputWriter.flush();
+            System.out.println("Final Dumping finished");
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            outputLock.unlock();
         }
     }
 

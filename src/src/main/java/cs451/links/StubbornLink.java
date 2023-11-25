@@ -3,11 +3,9 @@ package cs451.links;
 import cs451.Observer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,9 +16,7 @@ import cs451.Message;
 public class StubbornLink implements Observer {
     private final FairLossLink fl;
     private final Observer observer;
-    // private ConcurrentHashMap<Integer, Message> messagePool = new ConcurrentHashMap<>();
-
-     private final List<ConcurrentHashMap<Integer, Message>> pools;
+    private final List<ConcurrentHashMap<Integer, Message>> pools;
 
     public StubbornLink(Observer observer, int port, HashMap<Byte, Host> hostMap) {
         this.fl = new FairLossLink(this, port, hostMap);
@@ -38,7 +34,6 @@ public class StubbornLink implements Observer {
     }
 
     public int getMessagePoolSize(int id) {
-        // return messagePool.size();
         return pools.get(id).size();
     }
 
@@ -51,9 +46,6 @@ public class StubbornLink implements Observer {
                         fl.send(val);
                     });
                 }
-                // messagePool.forEach((key, val) -> {
-                //     fl.send(val);
-                // });
             }
         }, 1000, 2000);
     }
@@ -64,7 +56,6 @@ public class StubbornLink implements Observer {
             return;
         }
         pools.get(message.getReceiverId()).put(message.uniqueId(), message);
-        // messagePool.put(message.uniqueId(), message);
     }
 
     public void stop() {
@@ -79,7 +70,6 @@ public class StubbornLink implements Observer {
         }
         if (message.isAck()) {
             pools.get(message.getSenderId()).remove(message.uniqueId());
-            // messagePool.remove(message.uniqueId());
             message.ack_ack();
             send(message);
             return;

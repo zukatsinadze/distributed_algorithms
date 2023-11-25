@@ -26,17 +26,6 @@ public class PerfectLink implements Observer {
 
     public void send(Message message) {
         int windowSize = 300000 / ((this.hostMap.size() - 1));
-        // if (stubbornLink.getMessagePoolSize() > windowSize) {
-        //     while (stubbornLink.getMessagePoolSize() > windowSize) {
-        //         try {
-        //             Thread.sleep(100);
-        //         } catch (InterruptedException e) {
-        //             e.printStackTrace();
-        //         }
-        //     }
-
-        // }
-
         if (retry.size() > 0) {
             ArrayList<Message> toRemove = new ArrayList<>(retry);
 
@@ -55,7 +44,6 @@ public class PerfectLink implements Observer {
             retry.add(message);
             return;
         }
-
         stubbornLink.send(message);
     }
 
@@ -73,9 +61,6 @@ public class PerfectLink implements Observer {
             deliveredMessages.remove(message.uniqueId());
             return;
         }
-        // if (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory() > 63 * 1024 * 1024) {
-        //     System.gc();
-        // }
         if (deliveredMessages.add(message.uniqueId()))
             observer.deliver(message);
     }

@@ -15,28 +15,21 @@ import cs451.broadcast.UniformReliableBroadcast;
 
 public class FIFO implements Observer {
     private final UniformReliableBroadcast urb;
-    private final byte myId;
     private final Observer observer;
-    private final HashMap<Byte, Host> hostMap;
     private final int[] lastDelivered;
-    private final int MAX_HANDLING;
-    private final List<PriorityQueue<Message>> inFlight;
-    private final Lock inFlightLock = new ReentrantLock();
-
+    private final List<PriorityQueue<Message>> pending;
+    private final Lock pendingLock = new ReentrantLock();
 
 
     public FIFO(byte myId, int port, Observer observer, HashMap<Byte, Host> hostMap) {
-        this.hostMap = hostMap;
         this.urb = new UniformReliableBroadcast(myId, port, this, hostMap);
         this.observer = observer;
-        this.myId = myId;
-        this.MAX_HANDLING = 100;
 
-        List<PriorityQueue<Message>> tmpInFlight = new ArrayList<>();
+        List<PriorityQueue<Message>> tmp = new ArrayList<>();
         for (int i = 0; i < hostMap.size(); i++) {
-            tmpInFlight.add(new PriorityQueue<>());
+            tmp.add(new PriorityQueue<>());
         }
-        this.inFlight = Collections.unmodifiableList(tmpInFlight);
+        this.pending = Collections.unmodifiableList(tmp);
         this.lastDelivered = new int[hostMap.size()];
     }
 
@@ -53,29 +46,22 @@ public class FIFO implements Observer {
     }
 
     public void deliver(Message m) {
-        inFlightLock.lock();
-
         try {
-            inFlight.get(m.getOriginalSenderId()).add(m);
+            pendingLock.lock();
+            pending.get(m.getOriginalSenderId()).add(m);
 
-            while (m.getMessageId() == lastDelivered[m.getOriginalSenderId()] + 1) {
-                System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1000000);
-                // System.out.println("Delivering " + m.getMessageId() + " from " + m.getOriginalSenderId());
+            while (m.getMessageId() - 1 == lastDelivered[m.getOriginalSenderId()]) {
                 observer.deliver(m);
-
                 lastDelivered[m.getOriginalSenderId()] = m.getMessageId();
+                pending.get(m.getOriginalSenderId()).poll();
 
-                inFlight.get(m.getOriginalSenderId()).poll();
-
-                if (inFlight.get(m.getOriginalSenderId()).isEmpty()) {
+                if (pending.get(m.getOriginalSenderId()).isEmpty()) {
                     break;
-                } else {
-                    m = inFlight.get(m.getOriginalSenderId()).peek();
                 }
-
+                m = pending.get(m.getOriginalSenderId()).peek();
             }
         } finally {
-            inFlightLock.unlock();
+            pendingLock.unlock();
         }
     }
 
