@@ -18,7 +18,6 @@ public class Main {
 
     // write/flush output file if necessary
     System.out.println("Writing output.");
-    dumpLogs();
   }
 
   private static void initSignalHandlers() {
@@ -46,7 +45,6 @@ public class Main {
     }
   }
 
-  private static void dumpLogs() { process.dumpLogs(); }
 
   public static void main(String[] args) throws InterruptedException {
     parser = new Parser(args);
