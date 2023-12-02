@@ -40,12 +40,6 @@ public class FIFO implements Observer {
     }
   }
 
-  private int getMagicNumber(int nodes){
-    if (nodes >= 100)
-      return 1;
-    return 16000 / (nodes * nodes);
-  }
-
   public void broadcast(int messageId, byte originalSenderId) {
     while (current.get() >= MAGIC_NUMBER) {
       try {

@@ -68,7 +68,6 @@ public class StubbornLink implements Observer {
             pools.get(message.getSenderId()).remove(message.uniqueId());
             return;
         }
-
         message.ack();
         send(message);
         observer.deliver(message);

@@ -52,7 +52,6 @@ public class PerfectLink implements Observer {
 
     public void send(Message message) {
         int windowSize = 300000 / ((this.hostMap.size() - 1));
-
         if (stubbornLink.getMessagePoolSize(message.getReceiverId()) >= windowSize) {
             retryLock.lock();
             try {
