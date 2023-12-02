@@ -8,7 +8,6 @@ public class Message implements Serializable {
     private byte senderId;
     private byte receiverId;
     private boolean ack = false;
-    // private boolean ack_ack = false;
 
     public Message(int messageId, byte senderId, byte receiverId) {
         this.messageId = messageId;
@@ -21,7 +20,6 @@ public class Message implements Serializable {
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.ack = ack;
-        // this.ack_ack = ack_ack;
     }
 
     public int getMessageId() {
@@ -44,13 +42,11 @@ public class Message implements Serializable {
         this.ack = true;
     }
 
-
-
     public boolean isAck() {
         return ack;
     }
 
-     @Override
+    @Override
     public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -83,8 +79,6 @@ public class Message implements Serializable {
         result[5] = receiverId;
 
         result[6] = (ack) ? (byte)1 : (byte)0;
-        // result[7] = (ack_ack) ? (byte)1 : (byte)0;
-
 
         return result;
     }

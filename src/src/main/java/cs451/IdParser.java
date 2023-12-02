@@ -4,7 +4,7 @@ public class IdParser {
 
     private static final String ID_KEY = "--id";
 
-    private byte id;
+    private int id;
 
     public boolean populate(String key, String value) {
         if (!key.equals(ID_KEY)) {
@@ -12,7 +12,7 @@ public class IdParser {
         }
 
         try {
-            id = Byte.parseByte(value);
+            id = Integer.parseInt(value);
             if (id <= 0) {
                 System.err.println("Id must be a positive number!");
             }
@@ -24,7 +24,7 @@ public class IdParser {
         return true;
     }
 
-    public byte getId() {
+    public int getId() {
         return id;
     }
 

@@ -51,7 +51,7 @@ public class Parser {
         System.exit(1);
     }
 
-    public byte myId() {
+    public int myId() {
         return idParser.getId();
     }
 

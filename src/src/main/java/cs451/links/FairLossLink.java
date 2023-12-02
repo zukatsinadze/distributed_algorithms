@@ -11,8 +11,7 @@ import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
 public class FairLossLink implements Observer {
-    // Threads used: Main, Signal Handler, Log Dumper, GC Runner, UDP Receiver, Sender Pool
-    private final int SENDER_NUMBER = 3;
+    private final int SENDER_NUMBER = 2;
     private final ExecutorService senderPool = Executors.newFixedThreadPool(SENDER_NUMBER);
     private final Observer observer;
     private HashMap<Byte, Host> hostMap;
@@ -40,8 +39,9 @@ public class FairLossLink implements Observer {
         receiverThread.start();
     }
 
-    public static void stop() {
-        UDPReceiver.stopReceiver();
+    public void stop() {
+        receiverThread.interrupt();
+        senderPool.shutdown();
     }
 
     @Override
@@ -49,3 +49,5 @@ public class FairLossLink implements Observer {
         observer.deliver(message);
     }
 }
+
+// ./stress.py fifo -r ../src/run.sh -l ../example/output -p 50 -m 100

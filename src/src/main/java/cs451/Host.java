@@ -7,13 +7,13 @@ public class Host {
 
     private static final String IP_START_REGEX = "/";
 
-    private byte id;
+    private int id;
     private String ip;
     private int port = -1;
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
-            id = Byte.parseByte(idString);
+            id = Integer.parseInt(idString);
 
             String ipTest = InetAddress.getByName(ipString).toString();
             if (ipTest.startsWith(IP_START_REGEX)) {
@@ -41,7 +41,7 @@ public class Host {
         return true;
     }
 
-    public byte getId() {
+    public int getId() {
         return id;
     }
 

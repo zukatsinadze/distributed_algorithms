@@ -35,7 +35,7 @@ public class Main {
         try (BufferedReader br = new BufferedReader(new FileReader(parser.config()))) {
             String[] parts = br.readLine().split(" ");
             numberOfMessages = Integer.parseInt(parts[0]);
-            targetId = Byte.parseByte(parts[1]);
+            targetId = (byte) (Integer.parseInt(parts[1]) - 1);
 
         } catch (IOException e) {
             System.err.println("Error reading the file: " + e.getMessage());
@@ -76,7 +76,7 @@ public class Main {
             System.out.println("Human-readable IP: " + host.getIp());
             System.out.println("Human-readable Port: " + host.getPort());
             System.out.println();
-            hostMap.put(host.getId(), host);
+            hostMap.put((byte)(host.getId() - 1), host);
         }
         System.out.println();
 
@@ -92,7 +92,7 @@ public class Main {
 
         parseConfig();
 
-        process = new Process(parser.myId(), hostMap, parser.output());
+        process = new Process((byte)(parser.myId() - 1), hostMap, parser.output());
         process.startProcessing();
 
         System.out.println("Broadcasting and delivering messages...\n");

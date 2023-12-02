@@ -23,14 +23,15 @@ public class UDPReceiver implements Runnable {
     public void run() {
         try {
             byte[] receiveData = new byte[8];
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             isRunning = true;
             while (isRunning) {
-                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 socket.receive(receivePacket);
                 Message message = Message.fromBytes(receivePacket.getData());
                 observer.deliver(message);
             }
             this.socket.close();
+            System.out.println("UDPReceiver stopped");
 
         } catch (Exception e) {
             e.printStackTrace();
