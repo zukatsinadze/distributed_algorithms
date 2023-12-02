@@ -45,14 +45,16 @@ public class Process implements Observer {
     }
   }
 
-  public void startProcessing() { this.fifo.start(); }
+  public void startProcessing() {
+    this.fifo.start();
+  }
 
   @Override
   public void deliver(Message message) {
     try {
       outputLock.lock();
       delivered++;
-      if (delivered % 100000 == 0) {
+      if (delivered % 50 == 0) {
         System.out.println("Delivered " + delivered + " messages. Time from start: " + (System.currentTimeMillis() - startTime)*0.001 + " seconds.");
       }
       outputWriter.delivered(message.getOriginalSenderId(),

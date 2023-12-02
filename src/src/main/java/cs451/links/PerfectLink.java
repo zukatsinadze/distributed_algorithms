@@ -75,10 +75,6 @@ public class PerfectLink implements Observer {
 
     @Override
     public void deliver(Message message) {
-        if (message.isAckAck()) {
-            deliveredMessages.remove(message.uniqueId());
-            return;
-        }
         if (deliveredMessages.add(message.uniqueId()))
             observer.deliver(message);
     }

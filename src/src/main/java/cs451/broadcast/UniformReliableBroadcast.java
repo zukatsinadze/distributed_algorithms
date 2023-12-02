@@ -11,8 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class UniformReliableBroadcast implements Observer {
-  // Threads used: Main, Signal Handler, UDP Receiver, UDP Sender Pool 4,
-  // SendPool 1
+  // Threads used: Main, SignalHandler, UDP Receiver, UDP Sender Pool 4,
+  // SendPool 1, Timers 2
 
   private final byte myId;
   private final BestEffortBroadcast beb;

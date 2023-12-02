@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 public class FIFO implements Observer {
   private final UniformReliableBroadcast urb;
   private final Observer observer;
@@ -23,7 +22,10 @@ public class FIFO implements Observer {
   public FIFO(byte myId, int port, Observer observer,
               HashMap<Byte, Host> hostMap) {
     this.myId = myId;
-    this.MAGIC_NUMBER =  160000 / (hostMap.size() * hostMap.size());;
+    this.MAGIC_NUMBER = 160000 / (hostMap.size() * hostMap.size());
+    // this.MAGIC_NUMBER = 100;
+    // this.MAGIC_NUMBER = getMagicNumber(hostMap.size());
+    // this.MAGIC_NUMBER = Math.max(1, 10000 / (hostMap.size() * hostMap.size()));
     this.urb = new UniformReliableBroadcast(myId, port, this, hostMap);
     this.observer = observer;
 
@@ -38,13 +40,19 @@ public class FIFO implements Observer {
     }
   }
 
+  private int getMagicNumber(int nodes){
+    if (nodes >= 100)
+      return 1;
+    return 16000 / (nodes * nodes);
+  }
+
   public void broadcast(int messageId, byte originalSenderId) {
     while (current.get() >= MAGIC_NUMBER) {
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
     current.incrementAndGet();
     urb.broadcast(messageId, originalSenderId);
