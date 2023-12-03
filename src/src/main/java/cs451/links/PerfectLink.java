@@ -10,13 +10,9 @@ import java.util.HashSet;
 public class PerfectLink implements Observer {
     private final StubbornLink stubbornLink;
     private final Observer observer;
-    private final byte myId;
     private HashSet<Integer> deliveredMessages;
-    private HashMap<Byte, Host> hostMap;
 
     public PerfectLink(byte myId, int port, Observer observer, HashMap<Byte, Host> hostMap) {
-        this.myId = myId;
-        this.hostMap = hostMap;
         this.stubbornLink = new StubbornLink(this, myId, port, hostMap);
         this.observer = observer;
         this.deliveredMessages = new HashSet<>();

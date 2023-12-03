@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import cs451.Host;
@@ -22,11 +21,9 @@ public class StubbornLink implements Observer {
     private final HashMap<Byte, Host> hostMap;
     private final List<ConcurrentHashMap<Integer, Message>> pools;
     private final List<ConcurrentLinkedQueue<Message>> retry;
-    private final byte myId;
 
     public StubbornLink(Observer observer, byte myId, int port, HashMap<Byte, Host> hostMap) {
         this.hostMap = hostMap;
-        this.myId = myId;
         this.fl = new FairLossLink(this, port, hostMap);
         this.observer = observer;
         List<ConcurrentHashMap<Integer, Message>> tmpPools = new ArrayList<>();
