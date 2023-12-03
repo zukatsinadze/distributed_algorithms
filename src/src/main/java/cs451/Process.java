@@ -2,6 +2,7 @@ package cs451;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Timer;
@@ -14,16 +15,8 @@ public class Process implements Observer {
     private final byte id;
     private Host me;
     private FIFO fifo;
-
-    private final ConcurrentHashMap<Byte, HashSet<Integer>> logs = new ConcurrentHashMap<>();
-
-    private final Object logLock = new Object(); // Lock for synchronized access to the logs
-    private final Object outputLock = new Object();
-    private HashMap<Byte, HashSet<Integer>> logsCopy;
     private int delivered = 0;
-
     private long startTime;
-
     static Logger outputWriter;
 
     public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
@@ -37,47 +30,6 @@ public class Process implements Observer {
         } catch (IOException e) {
           e.printStackTrace();
         }
-
-
-        for (Byte key : hostMap.keySet()) {
-            logs.put(key, new HashSet<>());
-        }
-
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    int curr_size = 0;
-                    for (byte key : logs.keySet()) {
-                        curr_size += logs.get(key).size();
-                    }
-
-                    if (curr_size > 100000) {
-                        synchronized (logLock) {
-                            logsCopy = new HashMap<>(logs);
-                            for (Byte key : logs.keySet()) {
-                                logs.put(key, new HashSet<>());
-                            }
-                        }
-
-                        synchronized (outputLock) {
-                            for (Byte key : logsCopy.keySet()) {
-
-                                    for (Integer msgId : logsCopy.get(key)) {
-                                        outputWriter.delivered(key, msgId);
-                                    }
-                            }
-                        }
-                        logsCopy.clear();
-
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }, 1000, 500);
-
     }
 
 
@@ -92,7 +44,16 @@ public class Process implements Observer {
 
     public void stopProcessing() {
         fifo.stop();
-        dumpLogs();
+        // dumpLogs();
+
+        try {
+            outputWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+          System.out.println("Delivered " + delivered + " messages. Time from start: " + (System.currentTimeMillis() - startTime)*0.001 + " seconds.");
+          System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
     }
 
     public void startProcessing() {
@@ -102,39 +63,10 @@ public class Process implements Observer {
 
     @Override
     public void deliver(Message message) {
-      synchronized (logLock) {
         delivered++;
-        if (delivered % 50 == 0) {
-          System.out.println("Delivered " + delivered + " messages. Time from start: " + (System.currentTimeMillis() - startTime)*0.001 + " seconds.");
-        }
-        logs.get(message.getOriginalSenderId()).add(message.getMessageId());
-      }
-    }
-
-    public void dumpLogs() {
-        try {
-            synchronized (outputLock) {
-                if (logsCopy != null) {
-                    for (Byte key : logsCopy.keySet()) {
-                            for (Integer msgId : logsCopy.get(key)) {
-                              outputWriter.delivered(key, msgId);
-                            }
-                    }
-                }
-
-                for (Byte key : logs.keySet()) {
-                        for (Integer msgId : logs.get(key)) {
-                            outputWriter.delivered(key, msgId);
-                        }
-                }
-
-
-                System.out.println("Final Dumping finished");
-            }
-        outputWriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
+        outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
+        if (delivered % 1000 == 0) {
+          System.out.println("Delivered " + delivered + " messages");
         }
     }
-
 }

@@ -8,7 +8,9 @@ import java.util.HashMap;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class FIFO implements Observer {
   private final UniformReliableBroadcast urb;
@@ -16,22 +18,38 @@ public class FIFO implements Observer {
   private final int[] nextDelivery;
   private final ConcurrentMap<Byte, PriorityQueue<Message>> pending;
   private final int MAGIC_NUMBER;
-  private AtomicInteger current = new AtomicInteger(0);
+
+  private final Lock condLock = new ReentrantLock();
+  private final Condition cond = condLock.newCondition();
+  private int current = 0;
   private byte myId;
 
   public FIFO(byte myId, int port, Observer observer,
-              HashMap<Byte, Host> hostMap) {
+      HashMap<Byte, Host> hostMap) {
     this.myId = myId;
-    this.MAGIC_NUMBER = 160000 / (hostMap.size() * hostMap.size());
-    // this.MAGIC_NUMBER = 100;
-    // this.MAGIC_NUMBER = getMagicNumber(hostMap.size());
-    // this.MAGIC_NUMBER = Math.max(1, 10000 / (hostMap.size() * hostMap.size()));
+    if (hostMap.size() <= 9) {
+      this.MAGIC_NUMBER = 180000 / (hostMap.size() * hostMap.size());
+    } else if (hostMap.size() >= 50) {
+      this.MAGIC_NUMBER = 1;
+    } else {
+      this.MAGIC_NUMBER = 25000 / (hostMap.size() * hostMap.size());
+    }
+
+    // 3 -> 20k
+    // 9 -> 2k
+
+    // 13 -> 200
+    // 15 -> 100
+    // anything bigger than 50 -> 1
+
+    // this.MAGIC_NUMBER = Math.min(100, Math.max(1, 2500 / (hostMap.size() *
+    // hostMap.size())));
     this.urb = new UniformReliableBroadcast(myId, port, this, hostMap);
     this.observer = observer;
 
     this.pending = new ConcurrentHashMap<>();
     for (int i = 0; i < hostMap.size(); i++) {
-      this.pending.put((byte)i, new PriorityQueue<>());
+      this.pending.put((byte) i, new PriorityQueue<>());
     }
 
     this.nextDelivery = new int[hostMap.size()];
@@ -41,26 +59,35 @@ public class FIFO implements Observer {
   }
 
   public void broadcast(int messageId, byte originalSenderId) {
-    while (current.get() >= MAGIC_NUMBER) {
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+    condLock.lock();
+    try {
+      while (current >= MAGIC_NUMBER) {
+        try {
+          cond.await();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
+    } finally {
+      current++;
+      condLock.unlock();
     }
-    current.incrementAndGet();
     urb.broadcast(messageId, originalSenderId);
   }
 
-  public void stop() { urb.stop(); }
+  public void stop() {
+    urb.stop();
+  }
 
-  public void start() { urb.start(); }
+  public void start() {
+    urb.start();
+  }
 
   public void deliver(Message m) {
     pending.get(m.getOriginalSenderId()).add(m);
-
+    boolean selfDelivery = false;
     if (m.getOriginalSenderId() == myId) {
-      current.decrementAndGet();
+      selfDelivery = true;
     }
 
     while (canDeliver(m)) {
@@ -71,6 +98,16 @@ public class FIFO implements Observer {
       m = pending.get(m.getOriginalSenderId()).peek();
       if (m == null) {
         break;
+      }
+    }
+
+    if (selfDelivery) {
+      condLock.lock();
+      try {
+        current--;
+        cond.signal();
+      } finally {
+        condLock.unlock();
       }
     }
   }

@@ -11,10 +11,10 @@ public class BestEffortBroadcast implements Observer {
   private final Observer observer;
   private final HashMap<Byte, Host> hostMap;
 
-  public BestEffortBroadcast(int port, Observer observer,
+  public BestEffortBroadcast(byte myId, int port, Observer observer,
                              HashMap<Byte, Host> hostMap) {
     this.hostMap = hostMap;
-    this.perfectLink = new PerfectLink(port, this, hostMap);
+    this.perfectLink = new PerfectLink(myId, port, this, hostMap);
     this.observer = observer;
   }
 

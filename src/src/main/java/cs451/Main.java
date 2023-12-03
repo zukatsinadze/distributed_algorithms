@@ -12,11 +12,8 @@ public class Main {
   static Parser parser;
 
   private static void handleSignal() {
-    // immediately stop network packet processing
     System.out.println("Immediately stopping network packet processing.");
     process.stopProcessing();
-
-    // write/flush output file if necessary
     System.out.println("Writing output.");
   }
 
