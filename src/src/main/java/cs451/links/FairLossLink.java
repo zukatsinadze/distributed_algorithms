@@ -3,6 +3,8 @@ package cs451.links;
 import cs451.Observer;
 import cs451.Host;
 import cs451.Message;
+import cs451.MessageBatch;
+
 import java.net.DatagramSocket;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
@@ -11,7 +13,7 @@ import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
 public class FairLossLink implements Observer {
-    private final int SENDER_NUMBER = 4;
+    private final int SENDER_NUMBER = 2;
     private final ExecutorService senderPool = Executors.newFixedThreadPool(SENDER_NUMBER);
     private final Observer observer;
     private HashMap<Byte, Host> hostMap;
@@ -30,7 +32,7 @@ public class FairLossLink implements Observer {
         this.receiverThread = new Thread(new UDPReceiver(this, port));
     }
 
-    void send(Message message) {
+    void send(MessageBatch message) {
         Host host = hostMap.get(message.getReceiverId());
         senderPool.submit(new UDPSender(host.getIp(), host.getPort(), message, socket));
     }

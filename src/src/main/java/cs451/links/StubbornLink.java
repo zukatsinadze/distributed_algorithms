@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import cs451.Host;
 import cs451.Message;
+import cs451.MessageBatch;
 
 public class StubbornLink implements Observer {
     private final FairLossLink fl;
@@ -54,18 +55,27 @@ public class StubbornLink implements Observer {
         (new Timer()).schedule(new TimerTask() {
             @Override
             public void run() {
+                ArrayList<Message> batch = new ArrayList<>();
                 for (ConcurrentHashMap<Integer, Message> pool : pools) {
                     pool.forEach((key, val) -> {
-                        fl.send(val);
+                        batch.add(val);
+                        if (batch.size() == 8) {
+                            fl.send(new MessageBatch(batch));
+                            batch.clear();
+                        }
                     });
+                    if (batch.size() > 0) {
+                        fl.send(new MessageBatch(batch));
+                    }
+                    batch.clear();
                 }
             }
-        }, 1000, 1000);
+        }, 1000, 2000);
     }
 
     public void send(Message message) {
         if(message.isAck()) {
-            fl.send(message);
+            fl.send(new MessageBatch(message));
             return;
         }
 

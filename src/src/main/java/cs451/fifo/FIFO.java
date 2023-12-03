@@ -29,21 +29,11 @@ public class FIFO implements Observer {
     this.myId = myId;
     if (hostMap.size() <= 9) {
       this.MAGIC_NUMBER = 180000 / (hostMap.size() * hostMap.size());
-    } else if (hostMap.size() >= 50) {
+    } else if (hostMap.size() >= 40) {
       this.MAGIC_NUMBER = 1;
     } else {
       this.MAGIC_NUMBER = 25000 / (hostMap.size() * hostMap.size());
     }
-
-    // 3 -> 20k
-    // 9 -> 2k
-
-    // 13 -> 200
-    // 15 -> 100
-    // anything bigger than 50 -> 1
-
-    // this.MAGIC_NUMBER = Math.min(100, Math.max(1, 2500 / (hostMap.size() *
-    // hostMap.size())));
     this.urb = new UniformReliableBroadcast(myId, port, this, hostMap);
     this.observer = observer;
 

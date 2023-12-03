@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 public class UniformReliableBroadcast implements Observer {
   private final byte myId;
@@ -15,6 +16,7 @@ public class UniformReliableBroadcast implements Observer {
   private final HashMap<Byte, Host> hostMap;
   private HashSet<Integer> delivered = new HashSet<>();
   private ConcurrentHashMap<Integer, int[]> pending = new ConcurrentHashMap<>();
+  private ExecutorService broadcaster = java.util.concurrent.Executors.newFixedThreadPool(1);
 
   public UniformReliableBroadcast(byte myId, int port, Observer observer,
                                   HashMap<Byte, Host> hostMap) {
@@ -30,7 +32,7 @@ public class UniformReliableBroadcast implements Observer {
     if (pending.get(msgUniqueId) == null) {
       pending.put(msgUniqueId, new int[] {message.getMessageId(),
                                           message.getOriginalSenderId(), 2});
-      beb.broadcast(message.getMessageId(), myId, message.getOriginalSenderId());
+      broadcaster.submit(() -> beb.broadcast(message.getMessageId(), myId, message.getOriginalSenderId()));
     } else {
       pending.get(msgUniqueId)[2]++;
     }
@@ -44,7 +46,7 @@ public class UniformReliableBroadcast implements Observer {
   public void broadcast(int messageId, byte originalSenderId) {
     int[] msg_array = new int[] {messageId, originalSenderId, 1};
     pending.put(Objects.hash(messageId, originalSenderId), msg_array);
-    beb.broadcast(messageId, myId, originalSenderId);
+    broadcaster.submit(() -> beb.broadcast(messageId, myId, originalSenderId));
   }
 
   public void start() { this.beb.start(); }
