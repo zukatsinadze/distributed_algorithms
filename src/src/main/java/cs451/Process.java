@@ -3,19 +3,22 @@ package cs451;
 
 import java.io.IOException;
 import java.util.HashMap;
-import cs451.fifo.FIFO;
+import java.util.Set;
 
 
 public class Process implements Observer {
     private final byte id;
     private Host me;
-    private FIFO fifo;
+    private int ds;
+    private int vs;
     static Logger outputWriter;
 
-    public Process(byte id, HashMap<Byte, Host> hostMap, String output) {
+
+    public Process(byte id, HashMap<Byte, Host> hostMap, String output, int ds, int vs) {
         this.id = id;
         this.me = hostMap.get(id);
-        this.fifo = new FIFO(id, this.me.getPort(), this, hostMap);
+        this.ds = ds;
+        this.vs = vs;
 
         try {
           outputWriter = new Logger(output);
@@ -25,9 +28,14 @@ public class Process implements Observer {
     }
 
 
-    public void broadcast(int msgId) {
-      this.fifo.broadcast(msgId, id);
-      outputWriter.sent(msgId);
+    // public void broadcast(int msgId) {
+      // this.fifo.broadcast(msgId, id);
+      // outputWriter.sent(msgId);
+    // }
+
+    public void send(Set<Integer> set) {
+      // this.fifo.send(set, id);
+      // outputWriter.sent(set);  
     }
 
     public byte getId() {
@@ -35,9 +43,7 @@ public class Process implements Observer {
     }
 
     public void stopProcessing() {
-        fifo.stop();
-        // dumpLogs();
-
+        // fifo.stop();
         try {
             outputWriter.flush();
         } catch (IOException e) {
@@ -46,12 +52,16 @@ public class Process implements Observer {
     }
 
     public void startProcessing() {
-        fifo.start();
+        // fifo.start();
     }
 
 
     @Override
     public void deliver(Message message) {
-        outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
+        // outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
+    }
+
+    public int getCurrentRound() {
+        return 0;
     }
 }

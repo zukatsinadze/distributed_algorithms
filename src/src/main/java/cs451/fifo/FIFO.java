@@ -100,6 +100,7 @@ public class FIFO implements Observer {
         condLock.unlock();
       }
     }
+    System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
   }
 
   private boolean canDeliver(Message m) {

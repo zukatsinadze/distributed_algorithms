@@ -4,10 +4,14 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Main {
   static HashMap<Byte, Host> hostMap = new HashMap<>();
-  static int numberOfMessages;
+  static int p;
+  static int vs;
+  static int ds;
   static Process process;
   static Parser parser;
 
@@ -26,23 +30,6 @@ public class Main {
     });
   }
 
-  private static void parseConfig() {
-    try (BufferedReader br =
-             new BufferedReader(new FileReader(parser.config()))) {
-      String[] parts = br.readLine().split(" ");
-      numberOfMessages = Integer.parseInt(parts[0]);
-    } catch (IOException e) {
-      System.err.println("Error reading the file: " + e.getMessage());
-    }
-  }
-
-  private static void sendMessages() {
-    for (int i = 1; i < numberOfMessages + 1; ++i) {
-      process.broadcast(i);
-    }
-  }
-
-
   public static void main(String[] args) throws InterruptedException {
     parser = new Parser(args);
     parser.parse();
@@ -51,8 +38,8 @@ public class Main {
     long pid = ProcessHandle.current().pid();
     System.out.println("My PID: " + pid + "\n");
     System.out.println("From a new terminal type `kill -SIGINT " + pid +
-                       "` or `kill -SIGTERM " + pid +
-                       "` to stop processing packets\n");
+        "` or `kill -SIGTERM " + pid +
+        "` to stop processing packets\n");
 
     System.out.println("My ID: " + parser.myId() + "\n");
     System.out.println("List of resolved hosts is:");
@@ -62,7 +49,7 @@ public class Main {
       System.out.println("Human-readable IP: " + host.getIp());
       System.out.println("Human-readable Port: " + host.getPort());
       System.out.println();
-      hostMap.put((byte)(host.getId() - 1), host);
+      hostMap.put((byte) (host.getId() - 1), host);
     }
     System.out.println();
 
@@ -75,16 +62,47 @@ public class Main {
     System.out.println(parser.config() + "\n");
 
     System.out.println("Doing some initialization\n");
+    BufferedReader br = null;
+    String[] parts = null;
+    try {
+      br = new BufferedReader(new FileReader(parser.config()));
+      parts = br.readLine().split(" ");
 
-    parseConfig();
+      p = Integer.parseInt(parts[0]);
+      vs = Integer.parseInt(parts[1]);
+      ds = Integer.parseInt(parts[2]);
 
-    process = new Process((byte)(parser.myId() - 1), hostMap, parser.output());
+    } catch (IOException e) {
+      System.err.println("Error reading the file: " + e.getMessage());
+    }
+
+    process = new Process((byte) (parser.myId() - 1), hostMap, parser.output(), ds, vs);
     process.startProcessing();
 
     initSignalHandlers();
 
     System.out.println("Broadcasting and delivering messages...\n");
-    sendMessages();
+    
+    try {
+      int currentRound = 0;
+      while (currentRound < p) {
+        if (process.getCurrentRound() == currentRound) {
+          System.out.println("Starting Round " + currentRound);
+          parts = br.readLine().split(" ");
+          Set<Integer> set = new HashSet<>();
+          for (String number : parts) {
+            set.add(Integer.parseInt(number));
+          }
+          process.send(set);
+          currentRound += 1;
+
+        }
+        Thread.sleep(200);
+      }
+      br.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
 
     // After a process finishes broadcasting,
     // it waits forever for the delivery of messages.

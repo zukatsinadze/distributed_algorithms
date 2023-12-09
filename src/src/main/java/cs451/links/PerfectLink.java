@@ -19,18 +19,6 @@ public class PerfectLink implements Observer {
     }
 
     public void send(Message message) {
-      // if (message.getOriginalSenderId() != myId) {
-      //   stubbornLink.send(message);
-      //   return;
-      // }
-
-      // while (stubbornLink.getMessagePoolSize(message.getReceiverId()) > 300000 / (this.hostMap.size() * this.hostMap.size())) {
-      //   try {
-      //     Thread.sleep(100);
-      //   } catch (InterruptedException e) {
-      //     e.printStackTrace();
-      //   }
-      // }
       stubbornLink.send(message);
     }
 
