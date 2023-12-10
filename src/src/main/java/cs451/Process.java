@@ -1,67 +1,60 @@
 package cs451;
 
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 
+import cs451.lattice.LatticeAgreement;
 
 public class Process implements Observer {
-    private final byte id;
-    private Host me;
-    private int ds;
-    private int vs;
-    static Logger outputWriter;
+  private final byte id;
+  private Host me;
+  private LatticeAgreement lattice;
+  static Logger outputWriter;
 
+  public Process(byte id, HashMap<Byte, Host> hostMap, String output, int proposalSetSize, int latticeRoundCount) {
+    this.id = id;
+    this.me = hostMap.get(id);
+    this.lattice = new LatticeAgreement(id, me.getPort(), this, hostMap, proposalSetSize, latticeRoundCount);
 
-    public Process(byte id, HashMap<Byte, Host> hostMap, String output, int ds, int vs) {
-        this.id = id;
-        this.me = hostMap.get(id);
-        this.ds = ds;
-        this.vs = vs;
-
-        try {
-          outputWriter = new Logger(output);
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+    try {
+      outputWriter = new Logger(output);
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+  }
 
+  public void send(Set<Integer> set) {
+    this.lattice.broadcast(set);
+  }
 
-    // public void broadcast(int msgId) {
-      // this.fifo.broadcast(msgId, id);
-      // outputWriter.sent(msgId);
-    // }
+  public byte getId() {
+    return id;
+  }
 
-    public void send(Set<Integer> set) {
-      // this.fifo.send(set, id);
-      // outputWriter.sent(set);  
+  public void stopProcessing() {
+    lattice.stop();
+    try {
+      outputWriter.flush();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+  }
 
-    public byte getId() {
-        return id;
-    }
+  public void startProcessing() {
+    lattice.start();
+  }
 
-    public void stopProcessing() {
-        // fifo.stop();
-        try {
-            outputWriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+  @Override
+  public void deliver(Message message) {
+  }
 
-    public void startProcessing() {
-        // fifo.start();
-    }
+  public void deliver(Set<Integer> numbers, int currentLatticeRound) {
+    outputWriter.decided(numbers, currentLatticeRound);
+  }
 
+  public int getCurrentRound() {
+    return lattice.getLatticeRound();
+  }
 
-    @Override
-    public void deliver(Message message) {
-        // outputWriter.delivered(message.getOriginalSenderId(), message.getMessageId());
-    }
-
-    public int getCurrentRound() {
-        return 0;
-    }
 }

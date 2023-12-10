@@ -1,48 +1,83 @@
 package cs451;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class Message implements Serializable, Comparable<Message> {
   private final int messageId;
   private byte senderId;
   private byte receiverId;
-  private byte originalSenderId;
-  private boolean ack = false;
+  private byte ack; // 0 for message, 1 for ack, 2 for nack
+  private int latticeRound;
+  private Set<Integer> proposal;
 
-  public Message(int messageId, byte senderId, byte receiverId,
-                 byte originalSenderId) {
+  public Message(int messageId, byte senderId, byte receiverId, int latticeRound, Set<Integer> proposal) {
     this.messageId = messageId;
     this.senderId = senderId;
-    this.originalSenderId = originalSenderId;
     this.receiverId = receiverId;
+    this.ack = 0;
+    this.latticeRound = latticeRound;
+    this.proposal = new HashSet<>(proposal);
   }
 
-  public Message(int messageId, byte senderId, byte receiverId,
-                 byte originalSenderId, boolean ack)  {
+  public Message(int messageId, byte senderId, byte receiverId, byte ack, int latticeRound, Set<Integer> proposal) {
     this.messageId = messageId;
     this.senderId = senderId;
     this.receiverId = receiverId;
-    this.originalSenderId = originalSenderId;
     this.ack = ack;
+    this.latticeRound = latticeRound;
+    this.proposal = new HashSet<>(proposal);
   }
 
-  public int getMessageId() { return messageId; }
+  public int getMessageId() {
+    return messageId;
+  }
 
-  public byte getSenderId() { return senderId; }
+  public byte getSenderId() {
+    return senderId;
+  }
 
-  public byte getReceiverId() { return receiverId; }
+  public byte getReceiverId() {
+    return receiverId;
+  }
 
-  public byte getOriginalSenderId() { return originalSenderId; }
+  public int getLatticeRound() {
+    return latticeRound;
+  }
 
-  public void ack() {
+  public Set<Integer> getProposal() {
+    return proposal;
+  }
+
+  public void ack(Set<Integer> newProposal) {
     byte temp = senderId;
     senderId = receiverId;
     receiverId = temp;
-    this.ack = true;
+    this.ack = 1;
+    this.proposal = new HashSet<>(newProposal);
   }
 
-  public boolean isAck() { return ack; }
+  public void nack(Set<Integer> newProposal) {
+    byte temp = senderId;
+    senderId = receiverId;
+    receiverId = temp;
+    this.ack = 2;
+    this.proposal = new HashSet<>(newProposal);
+  }
+
+  public boolean isAck() {
+    return ack == 1;
+  }
+
+  public boolean isNAck() {
+    return ack == 2;
+  }
+
+  public boolean isAckOrNAck() {
+    return ack == 1 || ack == 2;
+  }
 
   @Override
   public boolean equals(Object o) {
@@ -50,50 +85,70 @@ public class Message implements Serializable, Comparable<Message> {
       return true;
     if (!(o instanceof Message))
       return false;
-    Message message = (Message)o;
+    Message message = (Message) o;
     return messageId == message.messageId && senderId == message.senderId &&
         receiverId == message.receiverId;
   }
 
   public int uniqueId() {
-    if (ack)
-      return Objects.hash(messageId, receiverId, senderId, originalSenderId);
-    return Objects.hash(messageId, senderId, receiverId, originalSenderId);
-  }
-
-  public int uniqueMessageOriginalSenderId() {
-    return Objects.hash(messageId, originalSenderId);
+    if (ack == 1 || ack == 2)
+      return Objects.hash(messageId, receiverId, senderId);
+    return Objects.hash(messageId, senderId, receiverId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(messageId, senderId, receiverId, originalSenderId, ack);
+    return Objects.hash(messageId, senderId, receiverId, ack, latticeRound);
   }
 
-  public byte[] getBytes() {
-    byte[] result = new byte[8];
+  public byte[] getBytes(int proposalSetSize) {
+    byte[] result = new byte[11 + 4 * proposalSetSize];
 
-    result[0] = (byte)(messageId >> 24);
-    result[1] = (byte)(messageId >> 16);
-    result[2] = (byte)(messageId >> 8);
-    result[3] = (byte)messageId;
+    result[0] = (byte) (messageId >> 24);
+    result[1] = (byte) (messageId >> 16);
+    result[2] = (byte) (messageId >> 8);
+    result[3] = (byte) messageId;
 
-    result[4] = senderId;
-    result[5] = receiverId;
-    result[6] = originalSenderId;
+    result[4] = (byte) (latticeRound >> 24);
+    result[5] = (byte) (latticeRound >> 16);
+    result[6] = (byte) (latticeRound >> 8);
+    result[7] = (byte) latticeRound;
 
-    result[7] = (ack) ? (byte)1 : (byte)0;
+    result[8] = senderId;
+    result[9] = receiverId;
+    result[10] = ack;
+
+    int idx = 0;
+    for (Integer i : proposal) {
+      result[11 + idx * 4] = (byte) (i >> 24);
+      result[12 + idx * 4] = (byte) (i >> 16);
+      result[13 + idx * 4] = (byte) (i >> 8);
+      result[14 + idx * 4] = (byte) (int) i;
+      idx++;
+    }
     return result;
   }
 
-  public static Message fromBytes(byte[] bytes) {
-    int intValue = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) |
-                   ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
-    byte byteValue1 = bytes[4];
-    byte byteValue2 = bytes[5];
-    byte byteValue3 = bytes[6];
-    boolean boolValue1 = bytes[7] != 0;
-    return new Message(intValue, byteValue1, byteValue2, byteValue3, boolValue1);
+  public static Message fromBytes(byte[] bytes, int proposalSetSize) {
+    int messageId = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) |
+        ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
+
+    int latticeRound = ((bytes[4] & 0xFF) << 24) | ((bytes[5] & 0xFF) << 16) |
+        ((bytes[6] & 0xFF) << 8) | (bytes[7] & 0xFF);
+    byte senderId = bytes[8];
+    byte recieverId = bytes[9];
+    byte ack = bytes[10];
+
+    Set<Integer> proposal = new HashSet<>();
+    for (int i = 0; i < proposalSetSize; ++i) {
+      int idx = 11 + i * 4;
+      int number = ((bytes[idx] & 0xFF) << 24) | ((bytes[idx + 1] & 0xFF) << 16) |
+          ((bytes[idx + 2] & 0xFF) << 8) | (bytes[idx + 3] & 0xFF);
+      if (number != 0)
+        proposal.add(number);
+    }
+
+    return new Message(messageId, senderId, recieverId, ack, latticeRound, proposal);
   }
 
   @Override

@@ -15,9 +15,11 @@ public class UDPReceiver implements Runnable {
     private static boolean isRunning;
     private DatagramSocket socket;
     private ExecutorService deliverer = Executors.newFixedThreadPool(1);
+    private int proposalSetSize;
 
-    public UDPReceiver(Observer observer, int port) {
+    public UDPReceiver(Observer observer, int port, int proposalSetSize) {
         this.observer = observer;
+        this.proposalSetSize = proposalSetSize;
         try {
             this.socket = new DatagramSocket(port);
         } catch (Exception e) {
@@ -28,16 +30,18 @@ public class UDPReceiver implements Runnable {
     @Override
     public void run() {
         try {
-            byte[] receiveData = new byte[1+8*8];
+            byte[] receiveData = new byte[(11 + 4 * proposalSetSize)];
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             isRunning = true;
             while (isRunning) {
                 socket.receive(receivePacket);
-                ArrayList<Message> messages = MessageBatch.fromBytes(receivePacket.getData());
+                // ArrayList<Message> messages = MessageBatch.fromBytes(receivePacket.getData(), proposalSetSize);
+                Message message = Message.fromBytes(receivePacket.getData(), proposalSetSize);
                 deliverer.submit(() -> {
-                  for (Message message : messages) {
-                    observer.deliver(message);
-                  }
+                  // for (Message message : messages) {
+                  //   observer.deliver(message);
+                  // }
+                  observer.deliver(message);
                 });
             }
             deliverer.shutdown();

@@ -22,9 +22,9 @@ public class StubbornLink implements Observer {
     private final List<ConcurrentHashMap<Integer, Message>> pools;
     private final List<ConcurrentLinkedQueue<Message>> retry;
 
-    public StubbornLink(Observer observer, byte myId, int port, HashMap<Byte, Host> hostMap) {
+    public StubbornLink(Observer observer, byte myId, int port, HashMap<Byte, Host> hostMap, int proposalSetSize) {
         this.hostMap = hostMap;
-        this.fl = new FairLossLink(this, port, hostMap);
+        this.fl = new FairLossLink(this, port, hostMap, proposalSetSize);
         this.observer = observer;
         List<ConcurrentHashMap<Integer, Message>> tmpPools = new ArrayList<>();
         for (int i = 0; i < hostMap.size() + 1; i++) {
@@ -52,35 +52,38 @@ public class StubbornLink implements Observer {
         (new Timer()).schedule(new TimerTask() {
             @Override
             public void run() {
-                ArrayList<Message> batch = new ArrayList<>();
+                // ArrayList<Message> batch = new ArrayList<>();
                 for (ConcurrentHashMap<Integer, Message> pool : pools) {
                     pool.forEach((key, val) -> {
-                        batch.add(val);
-                        if (batch.size() == 8) {
-                            fl.send(new MessageBatch(batch));
-                            batch.clear();
-                        }
+                        fl.send(val);
+                        // batch.add(val);
+                        // if (batch.size() == 8) {
+                        //     fl.send(new MessageBatch(batch));
+                        //     batch.clear();
+                        // }
                     });
-                    if (batch.size() > 0) {
-                        fl.send(new MessageBatch(batch));
-                    }
-                    batch.clear();
+                    // if (batch.size() > 0) {
+                    //     fl.send(new MessageBatch(batch));
+                    // }
+                    // batch.clear();
                 }
             }
-        }, 1000, 2000);
+        }, 0, 1);
     }
 
     public void send(Message message) {
-        if(message.isAck()) {
-            fl.send(new MessageBatch(message));
+        // fl.send(message);
+        if(message.isAckOrNAck()) {
+            // fl.send(new MessageBatch(message));
+            fl.send(message);
             return;
         }
 
-        int windowSize = 300000 / this.hostMap.size();
-        if (pools.get(message.getReceiverId()).size() >= windowSize) {
-            retry.get(message.getReceiverId()).add(message);
-            return;
-        }
+        // // int windowSize = 300000 / this.hostMap.size();
+        // // if (pools.get(message.getReceiverId()).size() >= windowSize) {
+        // //     retry.get(message.getReceiverId()).add(message);
+        // //     return;
+        // // }
         pools.get(message.getReceiverId()).put(message.uniqueId(), message);
     }
 
@@ -90,17 +93,13 @@ public class StubbornLink implements Observer {
 
     @Override
     public void deliver(Message message) {
-        if (message.isAck()) {
+        if (message.isAckOrNAck()) {
             pools.get(message.getSenderId()).remove(message.uniqueId());
-            Message retryMessage = retry.get(message.getSenderId()).poll();
-            if (retryMessage == null) {
-                return;
-            }
-            pools.get(message.getSenderId()).put(retryMessage.uniqueId(), retryMessage);
-            return;
+            // Message retryMessage = retry.get(message.getSenderId()).poll();
+            // if (retryMessage != null) {
+            //     pools.get(message.getSenderId()).put(retryMessage.uniqueId(), retryMessage);
+            // }
         }
-        message.ack();
-        send(message);
         observer.deliver(message);
     }
 }

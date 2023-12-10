@@ -19,9 +19,11 @@ public class FairLossLink implements Observer {
     private HashMap<Byte, Host> hostMap;
     private Thread receiverThread;
     private DatagramSocket socket;
+    private int proposalSetSize;
 
-    FairLossLink(Observer observer, int port, HashMap<Byte, Host> hostMap) {
+    FairLossLink(Observer observer, int port, HashMap<Byte, Host> hostMap, int proposalSetSize) {
         this.observer = observer;
+        this.proposalSetSize = proposalSetSize;
         try {
             this.socket = new DatagramSocket();
         } catch (Exception e) {
@@ -29,12 +31,12 @@ public class FairLossLink implements Observer {
         }
 
         this.hostMap = hostMap;
-        this.receiverThread = new Thread(new UDPReceiver(this, port));
+        this.receiverThread = new Thread(new UDPReceiver(this, port, proposalSetSize));
     }
 
-    void send(MessageBatch message) {
+    void send(Message message) {
         Host host = hostMap.get(message.getReceiverId());
-        senderPool.submit(new UDPSender(host.getIp(), host.getPort(), message, socket));
+        senderPool.submit(new UDPSender(host.getIp(), host.getPort(), message, socket, proposalSetSize));
     }
 
     void start() {
@@ -51,5 +53,3 @@ public class FairLossLink implements Observer {
         observer.deliver(message);
     }
 }
-
-// ./stress.py fifo -r ../src/run.sh -l ../example/output -p 50 -m 100

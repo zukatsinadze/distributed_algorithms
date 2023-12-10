@@ -76,7 +76,7 @@ public class Main {
       System.err.println("Error reading the file: " + e.getMessage());
     }
 
-    process = new Process((byte) (parser.myId() - 1), hostMap, parser.output(), ds, vs);
+    process = new Process((byte) (parser.myId() - 1), hostMap, parser.output(), ds, p);
     process.startProcessing();
 
     initSignalHandlers();
@@ -95,7 +95,6 @@ public class Main {
           }
           process.send(set);
           currentRound += 1;
-
         }
         Thread.sleep(200);
       }
