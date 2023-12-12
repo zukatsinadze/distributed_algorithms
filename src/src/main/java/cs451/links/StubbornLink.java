@@ -39,6 +39,12 @@ public class StubbornLink implements Observer {
         this.retry = Collections.unmodifiableList(tmpRetry);
     }
 
+    public void clearPools() {
+        for (ConcurrentHashMap<Integer, Message> pool : pools) {
+            pool.clear();
+        }
+    }
+
     public void start() {
         fl.start();
         consumePool();
@@ -68,7 +74,7 @@ public class StubbornLink implements Observer {
                     // batch.clear();
                 }
             }
-        }, 0, 1);
+        }, 0, 1000); // TODO: Massive
     }
 
     public void send(Message message) {
@@ -79,11 +85,11 @@ public class StubbornLink implements Observer {
             return;
         }
 
-        // // int windowSize = 300000 / this.hostMap.size();
-        // // if (pools.get(message.getReceiverId()).size() >= windowSize) {
-        // //     retry.get(message.getReceiverId()).add(message);
-        // //     return;
-        // // }
+        int windowSize = 300000 / (this.hostMap.size() * this.hostMap.size());
+        if (pools.get(message.getReceiverId()).size() >= windowSize) {
+            retry.get(message.getReceiverId()).add(message);
+            return;
+        }
         pools.get(message.getReceiverId()).put(message.uniqueId(), message);
     }
 
@@ -94,12 +100,14 @@ public class StubbornLink implements Observer {
     @Override
     public void deliver(Message message) {
         if (message.isAckOrNAck()) {
-            pools.get(message.getSenderId()).remove(message.uniqueId());
-            // Message retryMessage = retry.get(message.getSenderId()).poll();
-            // if (retryMessage != null) {
-            //     pools.get(message.getSenderId()).put(retryMessage.uniqueId(), retryMessage);
-            // }
+            if (pools.get(message.getSenderId()).remove(message.uniqueId()) != null)
+              observer.deliver(message);
+            Message retryMessage = retry.get(message.getSenderId()).poll();
+            if (retryMessage != null) {
+                pools.get(message.getSenderId()).put(retryMessage.uniqueId(), retryMessage);
+            }
+        } else {
+          observer.deliver(message);
         }
-        observer.deliver(message);
     }
 }

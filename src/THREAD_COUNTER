@@ -1,6 +1,7 @@
 1. Main
 2. Signal Handler
+
 3. receiverThread
-4,5,6. senderPool 3
-7. PerfectLink timer
-8. StubbornLink timer
+4. senderPool 
+5. StubbornLink timer
+6. Deliverer

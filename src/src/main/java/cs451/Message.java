@@ -19,7 +19,7 @@ public class Message implements Serializable, Comparable<Message> {
     this.receiverId = receiverId;
     this.ack = 0;
     this.latticeRound = latticeRound;
-    this.proposal = new HashSet<>(proposal);
+    this.proposal = proposal;
   }
 
   public Message(int messageId, byte senderId, byte receiverId, byte ack, int latticeRound, Set<Integer> proposal) {
@@ -28,7 +28,7 @@ public class Message implements Serializable, Comparable<Message> {
     this.receiverId = receiverId;
     this.ack = ack;
     this.latticeRound = latticeRound;
-    this.proposal = new HashSet<>(proposal);
+    this.proposal = proposal;
   }
 
   public int getMessageId() {
@@ -51,20 +51,12 @@ public class Message implements Serializable, Comparable<Message> {
     return proposal;
   }
 
-  public void ack(Set<Integer> newProposal) {
-    byte temp = senderId;
-    senderId = receiverId;
-    receiverId = temp;
-    this.ack = 1;
-    this.proposal = new HashSet<>(newProposal);
+  public Message ack(Set<Integer> newProposal) {
+    return new Message(messageId, receiverId, senderId, (byte)1, latticeRound, newProposal);
   }
 
-  public void nack(Set<Integer> newProposal) {
-    byte temp = senderId;
-    senderId = receiverId;
-    receiverId = temp;
-    this.ack = 2;
-    this.proposal = new HashSet<>(newProposal);
+  public Message nack(Set<Integer> newProposal) {
+    return new Message(messageId, receiverId, senderId, (byte)2, latticeRound, newProposal);
   }
 
   public boolean isAck() {

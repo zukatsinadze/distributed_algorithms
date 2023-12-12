@@ -82,11 +82,13 @@ public class Main {
     initSignalHandlers();
 
     System.out.println("Broadcasting and delivering messages...\n");
-    
+
     try {
       int currentRound = 0;
       while (currentRound < p) {
         if (process.getCurrentRound() == currentRound) {
+          if (currentRound % 20 == 0)
+            System.gc();
           System.out.println("Starting Round " + currentRound);
           parts = br.readLine().split(" ");
           Set<Integer> set = new HashSet<>();

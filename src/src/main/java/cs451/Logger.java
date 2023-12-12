@@ -13,7 +13,8 @@ public class Logger {
   }
 
   public void decided(Collection<Integer> values, int currentLatticeRound) {
-    try {
+    synchronized (this.writer) {
+      try {
       if (!values.isEmpty()) {
         StringBuilder sb = new StringBuilder();
         for (Integer value : values) {
@@ -24,10 +25,13 @@ public class Logger {
     } catch (IOException e) {
       System.out.println("Error writing to file");
     }
+    }
   }
 
   public void flush() throws IOException {
-    writer.flush();
-    writer.close();
+    synchronized (this.writer) {
+      writer.flush();
+      writer.close();
+    }
   }
 }
