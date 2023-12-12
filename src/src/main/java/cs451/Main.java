@@ -76,7 +76,7 @@ public class Main {
       System.err.println("Error reading the file: " + e.getMessage());
     }
 
-    process = new Process((byte) (parser.myId() - 1), hostMap, parser.output(), ds, p);
+    process = new Process((byte) (parser.myId() - 1), hostMap, parser.output(), p, vs, ds);
     process.startProcessing();
 
     initSignalHandlers();
@@ -86,9 +86,6 @@ public class Main {
     try {
       int currentRound = 0;
       while (currentRound < p) {
-        if (process.getCurrentRound() == currentRound) {
-          if (currentRound % 20 == 0)
-            System.gc();
           System.out.println("Starting Round " + currentRound);
           parts = br.readLine().split(" ");
           Set<Integer> set = new HashSet<>();
@@ -97,9 +94,8 @@ public class Main {
           }
           process.send(set);
           currentRound += 1;
-        }
-        Thread.sleep(200);
       }
+      Thread.sleep(200);
       br.close();
     } catch (IOException e) {
       e.printStackTrace();

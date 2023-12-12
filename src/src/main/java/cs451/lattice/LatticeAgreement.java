@@ -5,101 +5,120 @@ import cs451.Message;
 import cs451.Observer;
 import cs451.links.PerfectLink;
 import cs451.Process;
+
+
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 public class LatticeAgreement implements Observer {
-  private final PerfectLink perfectLink;
-  private final Process observer;
-  private final HashMap<Byte, Host> hostMap;
-  private final byte myId;
-  private AtomicInteger activeProposalNumber;
-  private AtomicInteger currentLatticeRound;
-  private Set<Integer>[] proposals;
+    final int MAX_HANDLING;
 
-  public LatticeAgreement(byte myId, int port, Process observer,
-      HashMap<Byte, Host> hostMap, int proposalSetSize, int latticeRoundCount) {
-    this.hostMap = hostMap;
-    this.perfectLink = new PerfectLink(port, myId, this, hostMap, proposalSetSize);
-    this.observer = observer;
-    this.myId = myId;
-    this.activeProposalNumber = new AtomicInteger(0);
-    this.currentLatticeRound = new AtomicInteger(0);
-    this.proposals = new Set[latticeRoundCount];
-    for (int i = 0; i < latticeRoundCount; i++) {
-      this.proposals[i] = ConcurrentHashMap.newKeySet();
+    // for child consensus instances
+    final PerfectLink perfectLink;
+    final byte myId;
+
+    private final Lock handlingNowLock = new ReentrantLock();
+    private final Condition canHandleMore = handlingNowLock.newCondition();
+
+    private int nextConsensusNumber = 0;
+    private final Map<Integer, AgreementInstance> instances = new HashMap<>();
+    private final HashMap<Integer, Set<Integer>> decisionsMap = new HashMap<>();
+    private int lastDecided = -1;
+    private HashMap<Byte, Host> hostMap;
+    private Process process;
+
+    public LatticeAgreement(byte myId, int port, HashMap<Byte, Host> hostMap, int p, int vs, int ds, Process process) {
+        this.hostMap= hostMap;
+        this.perfectLink = new PerfectLink(port, myId, this, hostMap, ds);
+        this.myId = myId;
+        this.MAX_HANDLING = Math.min(100, Math.max(8, 10000 / (int) (Math.pow(hostMap.size(), 2))));
+        this.process = process;
     }
 
-  }
+    public void start() {
+        perfectLink.start();
+    }
 
-  @Override
-  public void deliver(Message message) {
-    observer.deliver(message);
-  }
+    public void stop() {
+        perfectLink.stop();
+    }
 
-  public void broadcast(Set<Integer> proposal) {
-    var proposalNumber = activeProposalNumber.incrementAndGet();
-    var latticeRound = currentLatticeRound.get();
-    proposals[latticeRound].addAll(proposal);
-    var prop = proposals[latticeRound];
-    for (byte id : hostMap.keySet()) {
-      if (id != myId) {
-        Message message = new Message(proposalNumber, myId, id, latticeRound, prop);
-          perfectLink.send(message);
+    public void propose(Set<Integer> proposal) {
+        handlingNowLock.lock();
+
+        AgreementInstance instance;
+        try {
+            while (nextConsensusNumber - lastDecided > MAX_HANDLING) {
+                try {
+                    canHandleMore.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            int consensusN = this.nextConsensusNumber++;
+
+            instance = instances.get(consensusN);
+            if (instance == null) {
+                instance = new AgreementInstance(myId, consensusN, this, hostMap);
+                instances.put(consensusN, instance);
+            }
+        } finally {
+            handlingNowLock.unlock();
+        }
+
+        instance.propose(proposal);
+    }
+
+    synchronized void decide(Set<Integer> ts, int consensusN) {
+      System.out.println("Printing decision: " + consensusN);
+      handlingNowLock.lock();
+      try {
+          decisionsMap.put(consensusN, ts);
+          while (decisionsMap.containsKey(lastDecided + 1)) {
+              var decision = decisionsMap.remove(lastDecided + 1);
+              process.deliver(decision);
+
+              lastDecided++;
+              canHandleMore.signal();
+          }
+
+      } finally {
+          handlingNowLock.unlock();
       }
     }
-  }
 
-  public void decide() {
-    System.out.println("Delivered" + currentLatticeRound);
 
-    activeProposalNumber.set(0);
-    var round = currentLatticeRound.getAndIncrement();
-    System.out.println("Deciding set " + round + " " + proposals[round].toString());
-    System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
-    observer.deliver(proposals[round], round);
-  }
+    @Override
+    public void deliver(Message receivedMessage) {
+        int consensusN = receivedMessage.getMessageId();
 
-  public int getActiveProposalNumber() {
-    return this.activeProposalNumber.get();
-  }
+        AgreementInstance instance;
 
-  public Set<Integer> getCurrentProposal() {
-    return this.proposals[currentLatticeRound.get()];
-  }
+        handlingNowLock.lock();
 
-  public Set<Integer> getProposal(int latticeRound) {
-    return this.proposals[latticeRound];
-  }
+        try {
+            instance = instances.get(consensusN);
+            if (instance == null) {
+                if (consensusN >= this.nextConsensusNumber) {
+                    instance = new AgreementInstance(myId, consensusN, this, hostMap);
+                    instances.put(consensusN, instance);
+                } else {
+                    return;
+                }
+            }
+        } finally {
+            handlingNowLock.unlock();
+        }
 
-  public void updateCurrentProposal(Set<Integer> proposals) {
-    this.proposals[currentLatticeRound.get()].addAll(proposals);
-  }
-
-  public void broadcastNewProposal() {
-     var proposalNumber = activeProposalNumber.incrementAndGet();
-    var latticeRound = currentLatticeRound.get();
-    var prop = proposals[latticeRound];
-    for (byte id : hostMap.keySet()) {
-      if (id != myId) {
-        Message message = new Message(proposalNumber, myId, id, latticeRound, prop);
-        perfectLink.send(message);
-      }
+        instance.handlePackage(receivedMessage);
     }
-  }
 
-  public int getLatticeRound() {
-    return this.currentLatticeRound.get();
-  }
-
-  public void start() {
-    this.perfectLink.start();
-  }
-
-  public void stop() {
-    perfectLink.stop();
-  }
 }

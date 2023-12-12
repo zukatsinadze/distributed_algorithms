@@ -12,7 +12,7 @@ public class Logger {
     this.writer = new BufferedWriter(new FileWriter(outputPath));
   }
 
-  public void decided(Collection<Integer> values, int currentLatticeRound) {
+  public void decided(Collection<Integer> values) {
     synchronized (this.writer) {
       try {
       if (!values.isEmpty()) {

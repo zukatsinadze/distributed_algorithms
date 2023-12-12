@@ -12,10 +12,10 @@ public class Process implements Observer {
   private LatticeAgreement lattice;
   static Logger outputWriter;
 
-  public Process(byte id, HashMap<Byte, Host> hostMap, String output, int proposalSetSize, int latticeRoundCount) {
+  public Process(byte id, HashMap<Byte, Host> hostMap, String output, int p, int vs, int ds) {
     this.id = id;
     this.me = hostMap.get(id);
-    this.lattice = new LatticeAgreement(id, me.getPort(), this, hostMap, proposalSetSize, latticeRoundCount);
+    this.lattice = new LatticeAgreement(id, me.getPort(), hostMap, p, vs, ds, this);
 
     try {
       outputWriter = new Logger(output);
@@ -25,7 +25,7 @@ public class Process implements Observer {
   }
 
   public void send(Set<Integer> set) {
-    this.lattice.broadcast(set);
+    this.lattice.propose(set);
   }
 
   public byte getId() {
@@ -49,12 +49,9 @@ public class Process implements Observer {
   public void deliver(Message message) {
   }
 
-  public void deliver(Set<Integer> numbers, int currentLatticeRound) {
-    outputWriter.decided(numbers, currentLatticeRound);
+  public void deliver(Set<Integer> numbers) {
+    outputWriter.decided(numbers);
   }
 
-  public int getCurrentRound() {
-    return lattice.getLatticeRound();
-  }
 
 }
