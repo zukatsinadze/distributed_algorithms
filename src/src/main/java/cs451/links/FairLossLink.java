@@ -13,43 +13,43 @@ import cs451.links.udp.UDPReceiver;
 import cs451.links.udp.UDPSender;
 
 public class FairLossLink implements Observer {
-    private final int SENDER_NUMBER = 2;
-    private final ExecutorService senderPool = Executors.newFixedThreadPool(SENDER_NUMBER);
-    private final Observer observer;
-    private HashMap<Byte, Host> hostMap;
-    private Thread receiverThread;
-    private DatagramSocket socket;
-    private int proposalSetSize;
+  private final int SENDER_NUMBER = 3;
+  private final ExecutorService senderPool = Executors.newFixedThreadPool(SENDER_NUMBER);
+  private final Observer observer;
+  private HashMap<Byte, Host> hostMap;
+  private Thread receiverThread;
+  private DatagramSocket socket;
+  private int proposalSetSize;
 
-    FairLossLink(Observer observer, int port, HashMap<Byte, Host> hostMap, int proposalSetSize) {
-        this.observer = observer;
-        this.proposalSetSize = proposalSetSize;
-        try {
-            this.socket = new DatagramSocket();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        this.hostMap = hostMap;
-        this.receiverThread = new Thread(new UDPReceiver(this, port, proposalSetSize));
+  FairLossLink(Observer observer, int port, HashMap<Byte, Host> hostMap, int proposalSetSize) {
+    this.observer = observer;
+    this.proposalSetSize = proposalSetSize;
+    try {
+      this.socket = new DatagramSocket();
+    } catch (Exception e) {
+      e.printStackTrace();
     }
 
-    void send(Message message) {
-        Host host = hostMap.get(message.getReceiverId());
-        senderPool.submit(new UDPSender(host.getIp(), host.getPort(), message, socket, proposalSetSize));
-    }
+    this.hostMap = hostMap;
+    this.receiverThread = new Thread(new UDPReceiver(this, port, proposalSetSize));
+  }
 
-    void start() {
-        receiverThread.start();
-    }
+  void send(MessageBatch message) {
+    Host host = hostMap.get(message.getReceiverId());
+    senderPool.submit(new UDPSender(host.getIp(), host.getPort(), message, socket, proposalSetSize));
+  }
 
-    public void stop() {
-        receiverThread.interrupt();
-        senderPool.shutdown();
-    }
+  void start() {
+    receiverThread.start();
+  }
 
-    @Override
-    public void deliver(Message message) {
-        observer.deliver(message);
-    }
+  public void stop() {
+    receiverThread.interrupt();
+    senderPool.shutdown();
+  }
+
+  @Override
+  public void deliver(Message message) {
+    observer.deliver(message);
+  }
 }

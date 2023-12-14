@@ -5,16 +5,15 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import cs451.MessageBatch;
-import cs451.Message;
 
 public class UDPSender implements Runnable {
     private String serverAddress;
     private int serverPort;
-    private Message messageToSend;
+    private MessageBatch messageToSend;
     private DatagramSocket socket;
     private int proposalSetSize;
 
-    public UDPSender(String serverAddress, int serverPort, Message messageToSend, DatagramSocket socket, int proposalSetSize) {
+    public UDPSender(String serverAddress, int serverPort, MessageBatch messageToSend, DatagramSocket socket, int proposalSetSize) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         this.messageToSend = messageToSend;

@@ -3,7 +3,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Generator
+
 
 class Config:
     def __init__(self, file_name, p, vs, ds, proposals):
@@ -60,37 +60,46 @@ def check_configs(configs):
 
     for config in configs:
         if len(config.proposals) != p:
-            raise SyntaxError(
+            print(
                 f"Config file {config.file_name}: the amount of proposals is not equal to `p`"
             )
 
     for config in configs:
         for n, proposal in enumerate(config.proposals):
             if len(proposal) > vs:
-                raise SyntaxError(
+                print(
                     f"Config file {config.file_name}, proposal nr {n+1}: the amount of values exceeds `vs`"
                 )
 
     for n, proposal in enumerate(zip_union(p, [x.proposals for x in configs])):
         if len(proposal) > ds:
-            raise SyntaxError(
+            print(
                 f"Proposal nr {n+1}: there are over `ds` unique values among all processes"
             )
 
 def check_outputs(configs, outputs):
     p = configs[0].p
+    errors = []
+
+    total_decided = 0
+    minimum_decided = float("inf")
+    maximum_decided = float("-inf")
 
     for output in outputs:
         # property: we decide not more times than the amount of agreements
+        total_decided += len(output.decide_sets)
+        minimum_decided = min(minimum_decided, len(output.decide_sets))
+        maximum_decided = max(maximum_decided, len(output.decide_sets))
+
         if len(output.decide_sets) > p:
-            raise SyntaxError(
+            errors.append(
                 f"Output file {output.file_name}: there are more decide sets than proposals"
             )
 
         for n, decided_set in enumerate(output.decide_sets):
             # property: we decide unique values
             if len(decided_set) != len(set(decided_set)):
-                raise SyntaxError(
+                errors.append(
                     f"Output file {output.file_name}, agreement nr {n+1}: the decided set contains duplicate values"
                 )
 
@@ -100,12 +109,12 @@ def check_outputs(configs, outputs):
         for n, (proposed, decided) in enumerate(zip(config.proposals, output.decide_sets)):
             # property: self-validity I ⊆ O
             if not set(proposed).issubset(set(decided)):
-                raise SyntaxError(
+                errors.append(
                     f"Output file {output.file_name}, agreement nr {n+1}: the decided set is not a superset of the proposed set of this process"
                 )
             # property: global-validity O ⊆ union(I_j)
             if not set(decided).issubset(unique[n]):
-                raise SyntaxError(
+                errors.append(
                     f"Output file {output.file_name}, agreement nr {n+1}: the decided set is not a subset of the union of all proposed sets"
                 )
 
@@ -117,9 +126,19 @@ def check_outputs(configs, outputs):
                     set(decided1).issubset(set(decided2))
                     or set(decided2).issubset(set(decided1))
                 ):
-                    raise SyntaxError(
-                        f"Output files {output1.file_name} and {output2.file_name}, agreement nr {n+1}: none of the decided sets are a subset of eachother"
+                    errors.append(
+                        "Output files {output1.file_name} and {output2.file_name}, agreement nr {n+1}: none of the decided sets are a subset of eachother"
                     )
+
+    if not errors:
+        print("ALL PROPERTIES ARE SATISFIED")
+        print(f"Average number of decisions: {total_decided / len(outputs)}")
+        print(f"Minimum number of decisions: {minimum_decided}")
+        print(f"Maximum number of decisions: {maximum_decided}")
+    else:
+        print("THE FOLLOWING ERRORS WERE FOUND:")
+        for error in errors:
+            print(error)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

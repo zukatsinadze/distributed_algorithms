@@ -30,18 +30,17 @@ public class UDPReceiver implements Runnable {
     @Override
     public void run() {
         try {
-            byte[] receiveData = new byte[(11 + 4 * proposalSetSize)];
+            byte[] receiveData = new byte[1 + (11 + 4 * proposalSetSize) * 8];
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
             isRunning = true;
             while (isRunning) {
                 socket.receive(receivePacket);
-                // ArrayList<Message> messages = MessageBatch.fromBytes(receivePacket.getData(), proposalSetSize);
-                Message message = Message.fromBytes(receivePacket.getData(), proposalSetSize);
+                ArrayList<Message> messages = MessageBatch.fromBytes(receivePacket.getData(), proposalSetSize);
+                // TODO: Maybe give priority to lower ids
                 deliverer.submit(() -> {
-                  // for (Message message : messages) {
-                  //   observer.deliver(message);
-                  // }
-                  observer.deliver(message);
+                  for (Message message : messages) {
+                    observer.deliver(message);
+                  }
                 });
             }
             deliverer.shutdown();

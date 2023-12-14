@@ -79,13 +79,13 @@ public class Message implements Serializable, Comparable<Message> {
       return false;
     Message message = (Message) o;
     return messageId == message.messageId && senderId == message.senderId &&
-        receiverId == message.receiverId;
+        receiverId == message.receiverId && latticeRound == message.latticeRound;
   }
 
   public int uniqueId() {
     if (ack == 1 || ack == 2)
-      return Objects.hash(messageId, receiverId, senderId);
-    return Objects.hash(messageId, senderId, receiverId);
+      return Objects.hash(messageId, receiverId, senderId, latticeRound);
+    return Objects.hash(messageId, senderId, receiverId, latticeRound);
   }
 
   @Override

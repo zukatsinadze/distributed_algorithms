@@ -15,16 +15,17 @@ public class Logger {
   public void decided(Collection<Integer> values) {
     synchronized (this.writer) {
       try {
-      if (!values.isEmpty()) {
-        StringBuilder sb = new StringBuilder();
-        for (Integer value : values) {
-          sb.append(value).append(" ");
+        if (!values.isEmpty()) {
+          StringBuilder sb = new StringBuilder();
+          for (Integer value : values) {
+            sb.append(value).append(" ");
+          }
+          sb.setLength(sb.length() - 1);
+          writer.write(sb.toString() + '\n');
         }
-        writer.write(sb.toString().trim() + '\n');
+      } catch (IOException e) {
+        System.out.println("Error writing to file");
       }
-    } catch (IOException e) {
-      System.out.println("Error writing to file");
-    }
     }
   }
 

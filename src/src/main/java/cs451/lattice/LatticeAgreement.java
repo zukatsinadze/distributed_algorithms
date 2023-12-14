@@ -5,120 +5,99 @@ import cs451.Message;
 import cs451.Observer;
 import cs451.links.PerfectLink;
 import cs451.Process;
-
-
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-
 public class LatticeAgreement implements Observer {
-    final int MAX_HANDLING;
+  private final int MAX_HANDLING;
+  private final PerfectLink perfectLink;
+  private final byte myId;
+  private final Lock conditionLock = new ReentrantLock();
+  private final Condition condition = conditionLock.newCondition();
+  private int nextConsensusNumber = 0;
+  private int currentlyHandling = 0;
+  private final ConcurrentHashMap<Integer, AgreementInstance> instances = new ConcurrentHashMap<>();
+  private final HashMap<Integer, Set<Integer>> decisionsMap = new HashMap<>();
+  private int nextToDecide = 0;
+  private HashMap<Byte, Host> hostMap;
+  private Process process;
 
-    // for child consensus instances
-    final PerfectLink perfectLink;
-    final byte myId;
+  public LatticeAgreement(byte myId, int port, HashMap<Byte, Host> hostMap, int p, int vs, int ds, Process process) {
+    this.hostMap = hostMap;
+    this.perfectLink = new PerfectLink(port, myId, this, hostMap, ds);
+    this.myId = myId;
+    // this.MAX_HANDLING = Math.min(100, Math.max(8, 10000 / (int) (Math.pow(hostMap.size(), 2))));
+    this.MAX_HANDLING = 1;
+    this.process = process;
+  }
 
-    private final Lock handlingNowLock = new ReentrantLock();
-    private final Condition canHandleMore = handlingNowLock.newCondition();
+  public void start() {
+    perfectLink.start();
+  }
 
-    private int nextConsensusNumber = 0;
-    private final Map<Integer, AgreementInstance> instances = new HashMap<>();
-    private final HashMap<Integer, Set<Integer>> decisionsMap = new HashMap<>();
-    private int lastDecided = -1;
-    private HashMap<Byte, Host> hostMap;
-    private Process process;
+  public void stop() {
+    System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
+    perfectLink.stop();
+  }
 
-    public LatticeAgreement(byte myId, int port, HashMap<Byte, Host> hostMap, int p, int vs, int ds, Process process) {
-        this.hostMap= hostMap;
-        this.perfectLink = new PerfectLink(port, myId, this, hostMap, ds);
-        this.myId = myId;
-        this.MAX_HANDLING = Math.min(100, Math.max(8, 10000 / (int) (Math.pow(hostMap.size(), 2))));
-        this.process = process;
-    }
+  public void sendPerfectLink(Message m) {
+    perfectLink.send(m);
+  }
 
-    public void start() {
-        perfectLink.start();
-    }
-
-    public void stop() {
-        perfectLink.stop();
-    }
-
-    public void propose(Set<Integer> proposal) {
-        handlingNowLock.lock();
-
-        AgreementInstance instance;
+  public void propose(Set<Integer> proposal) {
+    conditionLock.lock();
+    try {
+      while (currentlyHandling > MAX_HANDLING) {
         try {
-            while (nextConsensusNumber - lastDecided > MAX_HANDLING) {
-                try {
-                    canHandleMore.await();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            int consensusN = this.nextConsensusNumber++;
-
-            instance = instances.get(consensusN);
-            if (instance == null) {
-                instance = new AgreementInstance(myId, consensusN, this, hostMap);
-                instances.put(consensusN, instance);
-            }
-        } finally {
-            handlingNowLock.unlock();
+          condition.await();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
-
-        instance.propose(proposal);
-    }
-
-    synchronized void decide(Set<Integer> ts, int consensusN) {
-      System.out.println("Printing decision: " + consensusN);
-      handlingNowLock.lock();
-      try {
-          decisionsMap.put(consensusN, ts);
-          while (decisionsMap.containsKey(lastDecided + 1)) {
-              var decision = decisionsMap.remove(lastDecided + 1);
-              process.deliver(decision);
-
-              lastDecided++;
-              canHandleMore.signal();
-          }
-
-      } finally {
-          handlingNowLock.unlock();
       }
+      currentlyHandling++;
+    } finally {
+      conditionLock.unlock();
     }
+    AgreementInstance instance = getAgreementInstance(this.nextConsensusNumber++);
+    instance.propose(proposal);
+  }
 
-
-    @Override
-    public void deliver(Message receivedMessage) {
-        int consensusN = receivedMessage.getMessageId();
-
-        AgreementInstance instance;
-
-        handlingNowLock.lock();
-
-        try {
-            instance = instances.get(consensusN);
-            if (instance == null) {
-                if (consensusN >= this.nextConsensusNumber) {
-                    instance = new AgreementInstance(myId, consensusN, this, hostMap);
-                    instances.put(consensusN, instance);
-                } else {
-                    return;
-                }
-            }
-        } finally {
-            handlingNowLock.unlock();
-        }
-
-        instance.handlePackage(receivedMessage);
+  public void decide(Set<Integer> decidedSet, int consensusNumber) {
+    conditionLock.lock();
+    try {
+      decisionsMap.put(consensusNumber, decidedSet);
+      boolean decided = false;
+      while (decisionsMap.containsKey(nextToDecide)) {
+        decided = true;
+        Set<Integer> decision = decisionsMap.remove(nextToDecide);
+        process.deliver(decision);
+        nextToDecide++;
+        currentlyHandling--;
+      }
+      if (decided)
+        condition.signal();
+    } finally {
+      conditionLock.unlock();
     }
+  }
+
+  private AgreementInstance getAgreementInstance(int consensus) {
+    AgreementInstance instance = instances.get(consensus);
+    if (instance == null) {
+      instance = new AgreementInstance(myId, consensus, this, hostMap);
+      instances.put(consensus, instance);
+    }
+    return instance;
+  }
+
+  @Override
+  public void deliver(Message receivedMessage) {
+    AgreementInstance instance = getAgreementInstance(receivedMessage.getMessageId());
+    instance.handlePackage(receivedMessage);
+  }
 
 }

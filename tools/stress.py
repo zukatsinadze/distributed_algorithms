@@ -387,6 +387,7 @@ def main(parser_results, testConfig):
 
         mutex = threading.Lock()
 
+
         def waitForProcess(logicalPID, procHandle, mutex):
             procHandle.wait()
 

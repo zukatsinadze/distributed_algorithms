@@ -14,10 +14,12 @@ public class Main {
   static int ds;
   static Process process;
   static Parser parser;
+  static boolean active = true;
 
   private static void handleSignal() {
     System.out.println("Immediately stopping network packet processing.");
     process.stopProcessing();
+    active = false;
     System.out.println("Writing output.");
   }
 
@@ -84,18 +86,15 @@ public class Main {
     System.out.println("Broadcasting and delivering messages...\n");
 
     try {
-      int currentRound = 0;
-      while (currentRound < p) {
-          System.out.println("Starting Round " + currentRound);
-          parts = br.readLine().split(" ");
-          Set<Integer> set = new HashSet<>();
-          for (String number : parts) {
-            set.add(Integer.parseInt(number));
-          }
-          process.send(set);
-          currentRound += 1;
+      for (int currentRound = 0; currentRound < p && active; currentRound++) {
+        System.out.println("Starting Round " + currentRound);
+        parts = br.readLine().split(" ");
+        Set<Integer> set = new HashSet<>();
+        for (String number : parts) {
+          set.add(Integer.parseInt(number));
+        }
+        process.send(set);
       }
-      Thread.sleep(200);
       br.close();
     } catch (IOException e) {
       e.printStackTrace();

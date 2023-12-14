@@ -9,6 +9,7 @@ import cs451.lattice.LatticeAgreement;
 public class Process implements Observer {
   private final byte id;
   private Host me;
+  private boolean active;
   private LatticeAgreement lattice;
   static Logger outputWriter;
 
@@ -16,6 +17,7 @@ public class Process implements Observer {
     this.id = id;
     this.me = hostMap.get(id);
     this.lattice = new LatticeAgreement(id, me.getPort(), hostMap, p, vs, ds, this);
+    this.active = true;
 
     try {
       outputWriter = new Logger(output);
@@ -25,7 +27,8 @@ public class Process implements Observer {
   }
 
   public void send(Set<Integer> set) {
-    this.lattice.propose(set);
+    if (active)
+      this.lattice.propose(set);
   }
 
   public byte getId() {
@@ -33,6 +36,7 @@ public class Process implements Observer {
   }
 
   public void stopProcessing() {
+    active = false;
     lattice.stop();
     try {
       outputWriter.flush();
@@ -42,6 +46,7 @@ public class Process implements Observer {
   }
 
   public void startProcessing() {
+    active = true;
     lattice.start();
   }
 

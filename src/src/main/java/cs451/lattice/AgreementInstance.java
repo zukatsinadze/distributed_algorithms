@@ -3,133 +3,113 @@ package cs451.lattice;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import cs451.Host;
 import cs451.Message;
 
 public class AgreementInstance {
     private final int consensusNumber;
     private final LatticeAgreement latticeAgreement;
-
     private boolean active = false;
-    private int ackCount = 0;
-    private int nackCount = 0;
-    int activeProposalNumber = 0;
-    Set<Integer> proposedValue;
-    Set<Integer> lastBroadcastedProposal;
-    Set<Integer> acceptedValue;
+    private int acks = 0;
+    private int nacks = 0;
+    private int currentProposalNumber = 0;
+    private Set<Integer> proposedValue;
+    private Set<Integer> lastBroadcastedProposal;
+    private Set<Integer> acceptedValue;
     private HashMap<Byte, Host> hostMap;
-    byte myId;
+    private final byte myId;
+    private int[] lastProposalNumberFromNode;
+    private final Lock proposalLock = new ReentrantLock();
+    private final Lock handleLock = new ReentrantLock();
 
 
-    private int[] latestProposalNumber;
 
-    public AgreementInstance(byte myId, int consensusNumber, LatticeAgreement manager, HashMap<Byte, Host> hostMap) {
-      this.myId = myId;
+    public AgreementInstance(byte myId, int consensusNumber, LatticeAgreement lattice, HashMap<Byte, Host> hostMap) {
+        this.myId = myId;
         this.consensusNumber = consensusNumber;
-        proposedValue = new HashSet<>();
-        acceptedValue = new HashSet<>();
-        latestProposalNumber = new int[hostMap.size()];
-        this.latticeAgreement = manager;
+        this.proposedValue = new HashSet<>();
+        this.acceptedValue = new HashSet<>();
+        this.lastProposalNumberFromNode = new int[hostMap.size()];
+        this.latticeAgreement = lattice;
         this.hostMap = hostMap;
     }
 
     public void propose(Set<Integer> proposal) {
-        synchronized (this) {
-            proposedValue.addAll(proposal);
+        proposalLock.lock();
+        try {
             active = true;
-            activeProposalNumber++;
-
+            currentProposalNumber++;
+            proposedValue.addAll(proposal);
             proposedValue.addAll(acceptedValue);
-
-            broadcastProposal(proposedValue);
+            broadcast(proposedValue);
+        } finally {
+            proposalLock.unlock();
         }
     }
 
     public void handlePackage(Message message) {
-        synchronized (this) {
-            if (message.isAck())
-              handleAck(message);
-            else if (message.isNAck())
-              handleNack(message);
-            else
-              handleProposal(message);
-
+        handleLock.lock();
+        try {
+            if (message.isAckOrNAck())
+              handleAckNack(message);
+            else if (message.getMessageId() >= lastProposalNumberFromNode[message.getSenderId()])
+              handleNewMessage(message);
+        } finally {
+            handleLock.unlock();
         }
     }
 
-
-    private void handleProposal(Message m) {
-
-        if (m.getMessageId() >= latestProposalNumber[m.getSenderId()]) {
-            latestProposalNumber[m.getSenderId()] = m.getMessageId();
-        } else {
-            return;
-        }
+    private void handleNewMessage(Message m) {
+        lastProposalNumberFromNode[m.getSenderId()] = m.getMessageId();
         if (m.getProposal().containsAll(acceptedValue)) {
             acceptedValue = m.getProposal();
-            latticeAgreement.perfectLink.send(m.ack(m.getProposal()));
+            latticeAgreement.sendPerfectLink(m.ack(m.getProposal()));
         } else {
-            addAllToAccepted(m.getProposal());
-            latticeAgreement.perfectLink.send(m.nack(acceptedValue));
+            acceptedValue.addAll(m.getProposal());
+            latticeAgreement.sendPerfectLink(m.nack(acceptedValue));
         }
     }
 
-    private void handleAck(Message ack) {
-        if (active && ack.getLatticeRound() == activeProposalNumber) {
-            ackCount++;
-            ackLogic();
+    private void handleAckNack(Message ackOrNack) {
+        if (active && ackOrNack.getLatticeRound() == currentProposalNumber) {
+            if (ackOrNack.isAck()) {
+                acks++;
+            } else {
+                nacks++;
+                proposedValue.addAll(ackOrNack.getProposal());
+            }
+
+            if (acks + nacks > hostMap.size() / 2 && nacks != 0) {
+              currentProposalNumber++;
+              acks = 0;
+              nacks = 0;
+              broadcast(proposedValue);
+            } else if (acks > hostMap.size() / 2) {
+                latticeAgreement.decide(lastBroadcastedProposal, consensusNumber);
+                active = false;
+            }
         }
     }
 
-    private void handleNack(Message nack) {
-        if (active && nack.getLatticeRound() == activeProposalNumber) {
-            nackCount++;
-            proposedValue.addAll(nack.getProposal());
-            ackLogic();
-        }
-    }
-
-    private void ackLogic() {
-        if (nackCount > 0 && ackCount + nackCount > hostMap.size() / 2) {
-            activeProposalNumber++;
-
-            ackCount = 0;
-            nackCount = 0;
-
-            broadcastProposal(proposedValue);
-        } else if (ackCount > hostMap.size() / 2) {
-            latticeAgreement.decide(lastBroadcastedProposal, consensusNumber);
-            active = false;
-        }
-    }
-
-    private void broadcastProposal(Set<Integer> proposal) {
-        Set<Integer> copyOfProposal = Set.copyOf(proposal);
-        lastBroadcastedProposal = copyOfProposal;
-
-
-        addAllToAccepted(proposal);
-
+    private void broadcast(Set<Integer> proposal) {
+        lastBroadcastedProposal = new HashSet<>(proposal);
+        acceptedValue.addAll(proposal);
 
         if (proposal.containsAll(acceptedValue)) {
-            ackCount++;
+            acks++;
         } else {
-            nackCount++;
+            nacks++;
             proposedValue.addAll(acceptedValue);
         }
 
         for (byte host : hostMap.keySet()) {
             if (host != myId) {
-                latticeAgreement.perfectLink.send(new Message(consensusNumber, myId, host, activeProposalNumber, copyOfProposal));
+                latticeAgreement.sendPerfectLink(new Message(consensusNumber, myId, host, currentProposalNumber, lastBroadcastedProposal));
             }
         }
     }
 
-    private void addAllToAccepted(Set<Integer> values) {
-        for (Integer value : values) {
-            if (!acceptedValue.contains(value)) {
-                acceptedValue.add(value);
-            }
-        }
-    }
 }
