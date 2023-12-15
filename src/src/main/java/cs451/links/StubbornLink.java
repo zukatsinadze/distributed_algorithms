@@ -77,7 +77,7 @@ public class StubbornLink implements Observer {
           batch.clear();
         }
       }
-    }, 5000, 1000); // TODO: Massive
+    }, 0, 1500); // TODO: Massive
   }
 
   public void send(Message message) {
@@ -103,8 +103,10 @@ public class StubbornLink implements Observer {
 
   @Override
   public void deliver(Message message) {
+    // System.out.println("Delivered " + message.getMessageId());
     if (message.isAckOrNAck()) {
-      if (pools.get(message.getSenderId()).remove(message.uniqueId()) != null)
+      pools.get(message.getSenderId()).remove(message.uniqueId());
+      // if (pools.get(message.getSenderId()).remove(message.uniqueId()) != null)
         observer.deliver(message);
       Message retryMessage = retry.get(message.getSenderId()).poll();
       if (retryMessage != null) {

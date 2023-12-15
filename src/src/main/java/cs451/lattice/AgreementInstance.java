@@ -55,7 +55,7 @@ public class AgreementInstance {
         try {
             if (message.isAckOrNAck())
               handleAckNack(message);
-            else if (message.getMessageId() >= lastProposalNumberFromNode[message.getSenderId()])
+            else if (message.getLatticeRound() >= lastProposalNumberFromNode[message.getSenderId()])
               handleNewMessage(message);
         } finally {
             handleLock.unlock();
@@ -63,7 +63,7 @@ public class AgreementInstance {
     }
 
     private void handleNewMessage(Message m) {
-        lastProposalNumberFromNode[m.getSenderId()] = m.getMessageId();
+        lastProposalNumberFromNode[m.getSenderId()] = m.getLatticeRound();
         if (m.getProposal().containsAll(acceptedValue)) {
             acceptedValue = m.getProposal();
             latticeAgreement.sendPerfectLink(m.ack(m.getProposal()));
@@ -92,6 +92,10 @@ public class AgreementInstance {
                 active = false;
             }
         }
+    }
+
+    public void rebroadcast() {
+        broadcast(proposedValue);
     }
 
     private void broadcast(Set<Integer> proposal) {

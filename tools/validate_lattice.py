@@ -127,7 +127,7 @@ def check_outputs(configs, outputs):
                     or set(decided2).issubset(set(decided1))
                 ):
                     errors.append(
-                        "Output files {output1.file_name} and {output2.file_name}, agreement nr {n+1}: none of the decided sets are a subset of eachother"
+                        f"Output files {output1.file_name} and {output2.file_name}, agreement nr {n+1}: none of the decided sets are a subset of eachother"
                     )
 
     if not errors:

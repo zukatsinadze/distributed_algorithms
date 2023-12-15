@@ -30,9 +30,18 @@ public class LatticeAgreement implements Observer {
     this.hostMap = hostMap;
     this.perfectLink = new PerfectLink(port, myId, this, hostMap, ds);
     this.myId = myId;
-    // this.MAX_HANDLING = Math.min(100, Math.max(8, 10000 / (int) (Math.pow(hostMap.size(), 2))));
-    this.MAX_HANDLING = 1;
+    this.MAX_HANDLING = setMaxHandling(hostMap.size());
     this.process = process;
+  }
+
+  private int setMaxHandling(int nodes) {
+    if (nodes <= 10)
+      return 100;
+    if (nodes <= 50)
+      return 10000 / (nodes * nodes);
+    if (nodes <= 100)
+      return 5;
+    return 1;
   }
 
   public void start() {
@@ -69,8 +78,10 @@ public class LatticeAgreement implements Observer {
   public void decide(Set<Integer> decidedSet, int consensusNumber) {
     conditionLock.lock();
     try {
+      // System.out.println("Decided: " + consensusNumber);
       decisionsMap.put(consensusNumber, decidedSet);
       boolean decided = false;
+      // System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
       while (decisionsMap.containsKey(nextToDecide)) {
         decided = true;
         Set<Integer> decision = decisionsMap.remove(nextToDecide);

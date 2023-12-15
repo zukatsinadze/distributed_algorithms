@@ -22,6 +22,7 @@ public class Logger {
           }
           sb.setLength(sb.length() - 1);
           writer.write(sb.toString() + '\n');
+          writer.flush();
         }
       } catch (IOException e) {
         System.out.println("Error writing to file");
