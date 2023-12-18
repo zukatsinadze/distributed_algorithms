@@ -7,7 +7,6 @@ import cs451.links.PerfectLink;
 import cs451.Process;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -20,7 +19,7 @@ public class LatticeAgreement implements Observer {
   private final Condition condition = conditionLock.newCondition();
   private int nextConsensusNumber = 0;
   private int currentlyHandling = 0;
-  private final ConcurrentHashMap<Integer, AgreementInstance> instances = new ConcurrentHashMap<>();
+  private final HashMap<Integer, AgreementInstance> instances = new HashMap<>();
   private final HashMap<Integer, Set<Integer>> decisionsMap = new HashMap<>();
   private int nextToDecide = 0;
   private HashMap<Byte, Host> hostMap;
@@ -49,7 +48,8 @@ public class LatticeAgreement implements Observer {
   }
 
   public void stop() {
-    System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
+    System.out.println("Memory usage in mb: "
+        + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
     perfectLink.stop();
   }
 
@@ -71,17 +71,16 @@ public class LatticeAgreement implements Observer {
     } finally {
       conditionLock.unlock();
     }
-    AgreementInstance instance = getAgreementInstance(this.nextConsensusNumber++);
+    AgreementInstance instance = getAgreementInstance(this.nextConsensusNumber);
+    this.nextConsensusNumber++;
     instance.propose(proposal);
   }
 
   public void decide(Set<Integer> decidedSet, int consensusNumber) {
     conditionLock.lock();
     try {
-      // System.out.println("Decided: " + consensusNumber);
       decisionsMap.put(consensusNumber, decidedSet);
       boolean decided = false;
-      // System.out.println("Memory usage in mb: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
       while (decisionsMap.containsKey(nextToDecide)) {
         decided = true;
         Set<Integer> decision = decisionsMap.remove(nextToDecide);
@@ -96,7 +95,7 @@ public class LatticeAgreement implements Observer {
     }
   }
 
-  private AgreementInstance getAgreementInstance(int consensus) {
+  synchronized private AgreementInstance getAgreementInstance(int consensus) {
     AgreementInstance instance = instances.get(consensus);
     if (instance == null) {
       instance = new AgreementInstance(myId, consensus, this, hostMap);

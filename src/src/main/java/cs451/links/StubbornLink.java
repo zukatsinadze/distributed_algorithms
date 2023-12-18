@@ -77,7 +77,7 @@ public class StubbornLink implements Observer {
           batch.clear();
         }
       }
-    }, 0, 1500); // TODO: Massive
+    }, 0, 100); // TODO: Massive
   }
 
   public void send(Message message) {
