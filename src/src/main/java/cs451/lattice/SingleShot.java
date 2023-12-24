@@ -3,14 +3,13 @@ package cs451.lattice;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import cs451.Host;
 import cs451.Message;
 
-public class AgreementInstance {
+public class SingleShot {
   private final int consensusNumber;
   private final LatticeAgreement latticeAgreement;
   private boolean active = false;
@@ -25,7 +24,7 @@ public class AgreementInstance {
   private int[] lastProposalNumberFromNode;
   private final Lock handleLock = new ReentrantLock();
 
-  public AgreementInstance(byte myId, int consensusNumber, LatticeAgreement lattice, HashMap<Byte, Host> hostMap) {
+  public SingleShot(byte myId, int consensusNumber, LatticeAgreement lattice, HashMap<Byte, Host> hostMap) {
     this.myId = myId;
     this.consensusNumber = consensusNumber;
     this.proposedValue = new HashSet<>();
@@ -80,14 +79,14 @@ public class AgreementInstance {
         proposedValue.addAll(ackOrNack.getProposal());
       }
 
-      if (acks + nacks > hostMap.size() / 2 && nacks != 0) {
+      if (acks > hostMap.size() / 2) {
+        latticeAgreement.decide(lastBroadcastedProposal, consensusNumber);
+        active = false;
+      } else if (acks + nacks > hostMap.size() / 2 && nacks != 0) {
         currentProposalNumber++;
         acks = 0;
         nacks = 0;
         broadcast(proposedValue);
-      } else if (acks > hostMap.size() / 2) {
-        latticeAgreement.decide(lastBroadcastedProposal, consensusNumber);
-        active = false;
       }
     }
   }

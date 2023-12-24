@@ -12,14 +12,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class LatticeAgreement implements Observer {
-  private final int MAX_HANDLING;
   private final PerfectLink perfectLink;
   private final byte myId;
   private final Lock conditionLock = new ReentrantLock();
   private final Condition condition = conditionLock.newCondition();
   private int nextConsensusNumber = 0;
   private int currentlyHandling = 0;
-  private final HashMap<Integer, AgreementInstance> instances = new HashMap<>();
+  private final HashMap<Integer, SingleShot> instances = new HashMap<>();
   private final HashMap<Integer, Set<Integer>> decisionsMap = new HashMap<>();
   private int nextToDecide = 0;
   private HashMap<Byte, Host> hostMap;
@@ -29,11 +28,10 @@ public class LatticeAgreement implements Observer {
     this.hostMap = hostMap;
     this.perfectLink = new PerfectLink(port, myId, this, hostMap, ds);
     this.myId = myId;
-    this.MAX_HANDLING = setMaxHandling(hostMap.size());
     this.process = process;
   }
 
-  private int setMaxHandling(int nodes) {
+  private int getMaxHandling(int nodes) {
     if (nodes <= 10)
       return 100;
     if (nodes <= 50)
@@ -60,7 +58,7 @@ public class LatticeAgreement implements Observer {
   public void propose(Set<Integer> proposal) {
     conditionLock.lock();
     try {
-      while (currentlyHandling > MAX_HANDLING) {
+      while (currentlyHandling > getMaxHandling(hostMap.size())) {
         try {
           condition.await();
         } catch (InterruptedException e) {
@@ -71,8 +69,7 @@ public class LatticeAgreement implements Observer {
     } finally {
       conditionLock.unlock();
     }
-    AgreementInstance instance = getAgreementInstance(this.nextConsensusNumber);
-    this.nextConsensusNumber++;
+    SingleShot instance = getAgreementInstance(this.nextConsensusNumber++);
     instance.propose(proposal);
   }
 
@@ -86,8 +83,8 @@ public class LatticeAgreement implements Observer {
         Set<Integer> decision = decisionsMap.remove(nextToDecide);
         process.deliver(decision);
         nextToDecide++;
-        currentlyHandling--;
       }
+      currentlyHandling--;
       if (decided)
         condition.signal();
     } finally {
@@ -95,10 +92,10 @@ public class LatticeAgreement implements Observer {
     }
   }
 
-  synchronized private AgreementInstance getAgreementInstance(int consensus) {
-    AgreementInstance instance = instances.get(consensus);
+  synchronized private SingleShot getAgreementInstance(int consensus) {
+    SingleShot instance = instances.get(consensus);
     if (instance == null) {
-      instance = new AgreementInstance(myId, consensus, this, hostMap);
+      instance = new SingleShot(myId, consensus, this, hostMap);
       instances.put(consensus, instance);
     }
     return instance;
@@ -106,7 +103,7 @@ public class LatticeAgreement implements Observer {
 
   @Override
   public void deliver(Message receivedMessage) {
-    AgreementInstance instance = getAgreementInstance(receivedMessage.getMessageId());
+    SingleShot instance = getAgreementInstance(receivedMessage.getMessageId());
     instance.handlePackage(receivedMessage);
   }
 

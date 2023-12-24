@@ -19,6 +19,7 @@ public class StubbornLink implements Observer {
   private final FairLossLink fl;
   private final Observer observer;
   private final HashMap<Byte, Host> hostMap;
+  private final int timeout;
   private final List<ConcurrentHashMap<Integer, Message>> pools;
   private final List<ConcurrentLinkedQueue<Message>> retry;
 
@@ -26,6 +27,13 @@ public class StubbornLink implements Observer {
     this.hostMap = hostMap;
     this.fl = new FairLossLink(this, port, hostMap, proposalSetSize);
     this.observer = observer;
+    if (hostMap.size() > 100) {
+      this.timeout = 1500;
+    } else if (hostMap.size() > 50) {
+      this.timeout = 500;
+    } else{
+      this.timeout = 100;
+    }
     List<ConcurrentHashMap<Integer, Message>> tmpPools = new ArrayList<>();
     for (int i = 0; i < hostMap.size() + 1; i++) {
       tmpPools.add(new ConcurrentHashMap<>());
@@ -77,7 +85,7 @@ public class StubbornLink implements Observer {
           batch.clear();
         }
       }
-    }, 0, 100); // TODO: Massive
+    }, 0, this.timeout);
   }
 
   public void send(Message message) {
